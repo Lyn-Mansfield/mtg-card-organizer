@@ -1,3 +1,4 @@
+import pandas as pd
 import tkinter as tk
 from tkinter import ttk
 
@@ -10,29 +11,29 @@ class CardEntryFrame:
             highlightthickness=highlightthickness
         )
 
-        # Search frame
-        self.search_frame = tk.Frame(
+        # Entries frame
+        self.entries_frame = tk.Frame(
             self.whole_frame, 
             highlightbackground='brown', 
             highlightthickness=2
         )
-        self.search_frame.pack(side=tk.LEFT, expand=True, fill=tk.X, padx=10, pady=5)
+        self.entries_frame.pack(side=tk.TOP, expand=True, fill=tk.X, padx=10, pady=5)
 
         # Card entry
-        self.card_entry = ttk.Entry(self.search_frame)
+        self.card_entry = ttk.Entry(self.entries_frame)
         self.card_entry.pack(side=tk.LEFT, expand=True, fill=tk.X, padx=(0, 5))
         self.card_entry.bind('<Return>', add_item_command)
 
         # Category Selection Menu
         self.target_category = tk.StringVar(value="Unsorted")
         self.category_selector = ttk.OptionMenu(
-            self.search_frame, self.target_category, *[], command=lambda _: self.card_entry.focus()
+            self.entries_frame, self.target_category, *[], command=lambda _: self.card_entry.focus()
         )
         self.category_selector.pack(side=tk.LEFT, padx=(0, 5))
 
         # Custom category frame
         self.add_cat_frame = tk.Frame(
-            self.whole_frame, 
+            self.entries_frame, 
             highlightbackground='silver', 
             highlightthickness=2
         )
@@ -52,10 +53,15 @@ class CardEntryFrame:
         self.cat_name_entry.pack(side=tk.LEFT)
         self.cat_name_entry.bind('<Return>', add_cat_command)
 
+        # Add button
         self.add_button = ttk.Button(
             self.add_cat_frame, text="Add", command=add_cat_command
         )
         self.add_button.pack(side=tk.LEFT)
+
+        # Update label
+        self.update_label = tk.Label(self.whole_frame, text='')
+        self.update_label.pack(side=tk.BOTTOM, expand=True, fill=tk.X)
 
     def _validate_one_char(self, P):
         if len(P) <= 1:
@@ -69,10 +75,35 @@ class CardEntryFrame:
     def get_curr_category(self):
         return self.target_category.get()
 
-    def output_card_entry(self):
-        card_name = self.card_entry.get()
+    def output_card_search(self):
+        original_query = self.card_entry.get()
         self.card_entry.delete(0, tk.END)
-        return card_name
+        if len(original_query) == 0:
+            self.update_label.config(text='Empty query :c')
+            return
+
+        search_query = original_query.lower().replace(' ', '-')
+        try:
+            # edhrec ordering is roughly by popularity, with most popular at the top
+            search_raw_data = pd.read_json(f"https://api.scryfall.com/cards/search?q={search_query}&order=edhrec")
+        except:
+            self.update_label.config(text='No cards found :c')
+            return
+
+        raw_card_data_series = search_raw_data.apply(lambda row: pd.json_normalize(row['data']), axis=1)
+        raw_card_data_df = pd.concat(raw_card_data_series.tolist())
+        try:
+            # first look for if there is an exact match
+            raw_card_data_df['search_name'] = raw_card_data_df['name'].str.lower()
+            raw_card_data_df = raw_card_data_df.set_index('search_name')
+            target_card_row = raw_card_data_df.loc[original_query.lower()]
+        except:
+            # if no exact match, then just pick the most popular
+            target_card_row = raw_card_data_df.iloc[0]
+        
+        target_card_name = target_card_row['name']
+        self.update_label.config(text=f'Matched with "{target_card_name}" c:')
+        return target_card_name
 
     def output_new_cat_entries(self):
         keybind = self.keybind_entry.get().strip()

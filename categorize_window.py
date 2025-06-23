@@ -76,9 +76,9 @@ class MultiColumnListboxApp:
         print("trying to add new item!")
         """Add an item to the selected listbox"""
         target_category = self.input_frame.get_curr_category()
-        new_item = self.input_frame.output_card_entry()
+        new_item = self.input_frame.output_card_search()
 
-        if len(new_item) == 0:
+        if new_item is None:
             return
         self.block_frame.add_new_item(new_item, target_category)
 

@@ -83,14 +83,11 @@ class CardEntryFrame:
         if keybind is None and name is None:
             keybind, name = self.get_new_cat_info()
 
-        self.cat_frames[name] = new_cat_frame
-        self.key_bindings[keybind] = name
         # Update drop-down menu
         self.category_selector['menu'].add_command(
             label=name, 
             command=tk._setit(self.target_category, name)
         )
-
 
 
 
@@ -248,6 +245,7 @@ class MultiColumnListboxApp:
         # Add category to options menu
         self.input_frame.add_category(keybind=keybind, name=name)
 
+        # Add a new category block
         new_cat_frame = tk.Frame(
             self.categories_frame,
             height=300,
@@ -264,6 +262,11 @@ class MultiColumnListboxApp:
         new_cat_frame.listbox.pack(side=tk.TOP, expand=True, fill=tk.X)
         new_cat_frame.listbox.bind('<Key>', lambda event: self._transfer_card(new_cat_frame.listbox, event))
         
+        # Update dictionaries
+        self.cat_frames[name] = new_cat_frame
+        self.key_bindings[keybind] = name
+
+        # Reorganize the blocks
         self.reorganize_listboxes()
 
     def add_custom_category(self):

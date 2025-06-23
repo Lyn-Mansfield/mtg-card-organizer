@@ -23,7 +23,7 @@ class CardEntryFrame:
         # Card entry
         self.card_entry = ttk.Entry(self.search_frame)
         self.card_entry.pack(side=tk.LEFT, expand=True, fill=tk.X, padx=(0, 5))
-        self.card_entry.bind('<Return>', lambda event: add_item_command)
+        self.card_entry.bind('<Return>', add_item_command)
 
         # Category Selection Menu
         self.target_category = tk.StringVar(value="Unsorted")
@@ -52,7 +52,7 @@ class CardEntryFrame:
 
         self.cat_name_entry = tk.Entry(self.add_cat_frame)
         self.cat_name_entry.pack(side=tk.LEFT)
-        self.cat_name_entry.bind('<Return>', lambda event: add_cat_command)
+        self.cat_name_entry.bind('<Return>', add_cat_command)
 
         self.add_button = ttk.Button(
             self.add_cat_frame, text="Add", command=add_cat_command
@@ -71,9 +71,19 @@ class CardEntryFrame:
     def get_curr_category(self):
         return self.target_category.get()
 
-    def get_new_cat_info(self):
-        keybind = self.keybind_entry.get()
-        name = self.cat_name_entry.get()
+    def output_card_entry(self):
+        card_name = self.card_entry.get()
+        self.card_entry.delete(0, tk.END)
+        return card_name
+
+    def output_new_cat_entries(self):
+        keybind = self.keybind_entry.get().strip()
+        name = self.cat_name_entry.get().strip()
+        if len(keybind) == 0 or len(name) == 0:
+            raise Exception("No input for keybind and/or name")
+
+        self.keybind_entry.delete(0, tk.END)
+        self.cat_name_entry.delete(0, tk.END)
         return (keybind, name)
 
     # Add defaults of None so that we can pass in defaults without any input 
@@ -88,6 +98,7 @@ class CardEntryFrame:
             label=name, 
             command=tk._setit(self.target_category, name)
         )
+
 
 
 
@@ -167,7 +178,8 @@ class MultiColumnListboxApp:
         self.block_frame.pack(padx=10, pady=(0, 10), expand=True, fill=tk.BOTH)
 
         # Category canvas to house scrollbar
-        self.categories_canvas = tk.Canvas(self.block_frame,
+        self.categories_canvas = tk.Canvas(
+            self.block_frame,
             highlightbackground='black',
             highlightthickness=4
         )
@@ -222,7 +234,7 @@ class MultiColumnListboxApp:
         categories_frame_height = self.categories_frame.winfo_reqheight()
         categories_canvas_height = self.categories_canvas.winfo_height()
         if categories_frame_height > categories_canvas_height:
-            self.categories_canvas.yview_scroll(event.delta, "units")
+            self.categories_canvas.yview_scroll(-1 * event.delta, "units")
     
     def _transfer_card(self, curr_listbox, event):
         """Handle key presses for moving cards from category to category"""
@@ -269,27 +281,24 @@ class MultiColumnListboxApp:
         # Reorganize the blocks
         self.reorganize_listboxes()
 
-    def add_custom_category(self):
-        """Create a new listbox and add it to our collection"""
-        (keybind, name) = self.input_frame.get_new_cat_info()
-
-        if len(keybind) == 0 or len(name) == 0:
+    def add_custom_category(self, event):
+        # Get custom category information
+        try:
+            (keybind, name) = self.input_frame.output_new_cat_entries()
+        except Exception as e:
             return
-        else:
-            self.keybind_entry.delete(0, tk.END)
-            self.cat_name_entry.delete(0, tk.END)
 
         self.add_category(keybind, name)
     
-    def add_new_item(self):
+    def add_new_item(self, event):
+        print("trying to add new item!")
         """Add an item to the selected listbox"""
         target_category = self.input_frame.get_curr_category()
         target_listbox = self.cat_frames[target_category].listbox
             
-        new_item = self.card_entry.get()
+        new_item = self.input_frame.output_card_entry()
         if new_item:
             target_listbox.insert(tk.END, new_item)
-            self.card_entry.delete(0, tk.END)
             
             # Auto-grow the listbox height
             item_count = target_listbox.size()

@@ -49,9 +49,6 @@ class CategoryBlockFrame:
         # Category column frames list
         self.column_frames = []
         self.delete_cat_command = delete_cat_command
-
-        self.test_button = ttk.Button(self.whole_frame, text='bruh', command=lambda: print(self.categories_canvas.bbox("inner_frame")))
-        self.test_button.pack(side=tk.TOP)
 #----------------------------------------------------------------------------------------------------#
     def _on_mousewheel(self, event):
         # Handle mousewheel only when scrolling makes sense

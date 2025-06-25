@@ -4,7 +4,7 @@ from tkinter import messagebox
 class CategoryBlock:
     # Category block configuration
     min_width = 250
-    min_height = 8
+    min_height = 6
     block_padding = 5
 #----------------------------------------------------------------------------------------------------#
     def __init__(self, root, keybind, name, keystroke_command, delete_command, data=None):
@@ -59,7 +59,8 @@ class CategoryBlock:
             height=self.min_height
         )
         if data is not None:
-            self.listbox.insert(tk.END, *data)
+            for item in data:
+                self.add(item)
         self.listbox.pack(side=tk.TOP, expand=True, fill=tk.X)
 
         # Bind transfer command
@@ -89,6 +90,12 @@ class CategoryBlock:
     def size(self):
         return self.listbox.size()
 #----------------------------------------------------------------------------------------------------#
+    def resize(self):
+        # Auto-grow/contract the listbox height
+        item_count = self.listbox.size()
+        new_size = max(self.min_height, item_count)
+        self.listbox.config(height=new_size)
+#----------------------------------------------------------------------------------------------------#
     def curselection(self):
         return self.listbox.curselection()
 #----------------------------------------------------------------------------------------------------#
@@ -97,14 +104,11 @@ class CategoryBlock:
 #----------------------------------------------------------------------------------------------------#
     def add(self, new_item):
         self.listbox.insert(tk.END, new_item)
-
-        # Auto-grow the listbox height
-        item_count = self.listbox.size()
-        new_size = max(self.min_height, item_count)
-        self.listbox.config(height=new_size)
+        self.resize()
 #----------------------------------------------------------------------------------------------------#
     def delete(self, index):
         self.listbox.delete(index)
+        self.resize()
 #----------------------------------------------------------------------------------------------------#
     def delete_selected_entry(self, event=None):
         print('trying to delete!')

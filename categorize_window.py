@@ -34,6 +34,7 @@ class MultiColumnListboxApp:
         # Block frame
         self.block_frame = CategoryBlockFrame(
             self.body_frame,
+            delete_cat_command=self.delete_custom_category,
             highlightbackground='black', 
             highlightthickness=3
         )
@@ -41,7 +42,7 @@ class MultiColumnListboxApp:
 
         # Add default categories
         self._add_default_categories()
-
+#----------------------------------------------------------------------------------------------------#
     def _add_default_categories(self):
         # Initial setup
         default_categories = {
@@ -55,15 +56,15 @@ class MultiColumnListboxApp:
         }
         for (keybind, name) in default_categories.items():
             self.add_category(keybind, name)
-
+#----------------------------------------------------------------------------------------------------#
     def add_category(self, keybind, name):
         # Add category to options menu
-        self.input_frame.add_category(keybind=keybind, name=name)
+        self.input_frame.add_category(keybind, name)
 
         # Add a new category block
         self.block_frame.add_category(keybind, name)
-
-    def add_custom_category(self, event):
+#----------------------------------------------------------------------------------------------------#
+    def add_custom_category(self):
         # Get custom category information
         try:
             (keybind, name) = self.input_frame.output_new_cat_entries()
@@ -71,7 +72,14 @@ class MultiColumnListboxApp:
             return
 
         self.add_category(keybind, name)
-    
+#----------------------------------------------------------------------------------------------------#
+    def delete_custom_category(self, category_name):
+        # delete category from options menu
+        self.input_frame.delete_category(category_name)
+
+        # delete category block
+        self.block_frame.delete_category(category_name)
+#----------------------------------------------------------------------------------------------------#
     def add_new_item(self, event):
         print("trying to add new item!")
         # Add an item to the selected category

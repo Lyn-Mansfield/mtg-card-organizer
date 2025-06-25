@@ -26,10 +26,10 @@ class CardEntryFrame:
 
         # Category Selection Menu
         self.target_category = tk.StringVar(value="Unsorted")
-        self.category_selector = ttk.OptionMenu(
+        self.category_menu = ttk.OptionMenu(
             self.entries_frame, self.target_category, *[], command=lambda _: self.card_entry.focus()
         )
-        self.category_selector.pack(side=tk.LEFT, padx=(0, 5))
+        self.category_menu.pack(side=tk.LEFT, padx=(0, 5))
 
         # Custom category frame
         self.add_cat_frame = tk.Frame(
@@ -51,7 +51,7 @@ class CardEntryFrame:
 
         self.cat_name_entry = tk.Entry(self.add_cat_frame)
         self.cat_name_entry.pack(side=tk.LEFT)
-        self.cat_name_entry.bind('<Return>', add_cat_command)
+        self.cat_name_entry.bind('<Return>', lambda _: add_cat_command())
 
         # Add button
         self.add_button = ttk.Button(
@@ -62,19 +62,19 @@ class CardEntryFrame:
         # Update label
         self.update_label = tk.Label(self.whole_frame, text='')
         self.update_label.pack(side=tk.BOTTOM, expand=True, fill=tk.X)
-
+#----------------------------------------------------------------------------------------------------#
     def _validate_one_char(self, P):
         if len(P) <= 1:
             return True
         else:
             return False
-
+#----------------------------------------------------------------------------------------------------#
     def pack(self, side=None, padx=None, pady=None, expand=False, fill=None):
         self.whole_frame.pack(side=side, padx=padx, pady=pady, expand=expand, fill=fill)
-
+#----------------------------------------------------------------------------------------------------#
     def get_curr_category(self):
         return self.target_category.get()
-
+#----------------------------------------------------------------------------------------------------#
     def output_card_search(self):
         original_query = self.card_entry.get()
         self.card_entry.delete(0, tk.END)
@@ -104,26 +104,39 @@ class CardEntryFrame:
         target_card_name = target_card_row['name']
         self.update_label.config(text=f'Matched with "{target_card_name}" c:')
         return target_card_name
-
+#----------------------------------------------------------------------------------------------------#
     def output_new_cat_entries(self):
         keybind = self.keybind_entry.get().strip()
         name = self.cat_name_entry.get().strip()
         if len(keybind) == 0 or len(name) == 0:
+            self.update_label.config(text='Invalid keybind and/or category name :c')
             raise Exception("No input for keybind and/or name")
 
         self.keybind_entry.delete(0, tk.END)
         self.cat_name_entry.delete(0, tk.END)
+        self.update_label.config(text=f'{name} category added, using ({keybind}) to swap c:')
         return (keybind, name)
-
-    # Add defaults of None so that we can pass in defaults without any input 
-    # in the custom category entry boxes
-    def add_category(self, keybind=None, name=None):
-        # If not a default category, then both will be None
-        if keybind is None and name is None:
-            keybind, name = self.get_new_cat_info()
-
+#----------------------------------------------------------------------------------------------------#
+    def add_category(self, keybind, name):
         # Update drop-down menu
-        self.category_selector['menu'].add_command(
+        self.category_menu['menu'].add_command(
             label=name, 
             command=tk._setit(self.target_category, name)
         )
+#----------------------------------------------------------------------------------------------------#
+    def delete_category(self, category_name):
+        self.category_menu['menu'].delete(category_name)
+
+        # Update tracker variable if needed
+        if self.target_category.get() == category_name:
+            next_value = self.category_menu['menu'].entrycget(0, 'label')
+            self.target_category.set(next_value)
+
+
+
+
+
+
+
+
+

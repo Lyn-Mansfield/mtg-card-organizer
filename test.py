@@ -1,3 +1,4 @@
-x = (1,2)
-y, z = x
-print(y)
+import tkinter as tk
+
+test_dict = {1:'1', 2:'2'}
+print(len(test_dict))

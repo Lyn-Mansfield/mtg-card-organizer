@@ -1,10 +1,11 @@
 import tkinter as tk
 from tkinter import ttk
+from CategoryBlock import CategoryBlock
 
 class CategoryBlockFrame:
     def __init__(self, root, highlightbackground=None, highlightthickness=None):
         # Category/Keybind storage
-        self.cat_frames = {}
+        self.cat_blocks = {}
         self.key_bindings = {}
 
         # Whole frame, where everything lives
@@ -45,10 +46,8 @@ class CategoryBlockFrame:
         )
         self.categories_canvas.bind_all("<MouseWheel>", self._on_mousewheel)
 
-        # Category block configuration
-        self.min_cat_frame_width = 250
-        self.min_listbox_height = 10
-        self.block_padding = 5
+        # Category column frames list
+        self.column_frames = []
 
     def _on_mousewheel(self, event):
         # Handle mousewheel only when scrolling makes sense
@@ -57,86 +56,89 @@ class CategoryBlockFrame:
         if categories_frame_height > categories_canvas_height:
             self.categories_canvas.yview_scroll(-1 * event.delta, "units")
 
-    def _transfer_card(self, curr_listbox, event):
+    def _on_keystroke(self, curr_cat_block, event):
         """Handle key presses for moving cards from category to category"""
-        if curr_listbox.size() == 0:
-            return
-        selected_index = curr_listbox.curselection()
-        selected_card = curr_listbox.get(selected_index[0])
-        
-        keybind = event.char
+        print('generic keystroke detected...')
+        keystroke = event.char
+
+        if keystroke == '\\':
+            curr_cat_block.delete_selected_entry() 
+        else:
+            self._transfer_card(curr_cat_block, keystroke)
+
+    def _transfer_card(self, curr_cat_block, keybind):
         if keybind not in self.key_bindings.keys():
             return
-        target_category_name = self.key_bindings[keybind]
-        target_listbox = self.cat_frames[target_category_name].listbox
+        if curr_cat_block.size() == 0:
+            return
 
-        # Remove from current category, transfer to new category
-        curr_listbox.delete(selected_index)
-        target_listbox.insert(tk.END, selected_card)
+        selected_index = curr_cat_block.curselection()[0]
+        selected_card = curr_cat_block.get(selected_index)
+        target_category_name = self.key_bindings[keybind]
+        target_cat_block = self.cat_blocks[target_category_name]
+
+        # Remove from current block, transfer to new block
+        curr_cat_block.delete(selected_index)
+        target_cat_block.add(selected_card)
 
     def pack(self, side=None, padx=None, pady=None, expand=False, fill=None):
         self.whole_frame.pack(side=side, padx=padx, pady=pady, expand=expand, fill=fill)
 
     def add_category(self, keybind, name):
-        new_cat_frame = tk.Frame(
-            self.categories_frame,
-            height=300,
-            width=self.min_cat_frame_width,
-            highlightbackground='blue',
-            highlightthickness=1
-        )
-        new_cat_frame.label = tk.Label(new_cat_frame, text=f'{name} ({keybind})')
-        new_cat_frame.label.pack(side=tk.TOP)
-        new_cat_frame.listbox = tk.Listbox(
-            new_cat_frame,
-            height=self.min_listbox_height
-        )
-        new_cat_frame.listbox.pack(side=tk.TOP, expand=True, fill=tk.X)
-        new_cat_frame.listbox.bind('<Key>', lambda event: self._transfer_card(new_cat_frame.listbox, event))
-        
+        new_cat_label = f"{name} ({keybind})"
+        # Initialize root to the categories frame
+        new_cat_block = CategoryBlock(self.categories_frame, new_cat_label, self._on_keystroke)
+
         # Update dictionaries
-        self.cat_frames[name] = new_cat_frame
+        self.cat_blocks[name] = new_cat_block
         self.key_bindings[keybind] = name
 
         # Reorganize the blocks
         self.reorganize_listboxes()
 
     def reorganize_listboxes(self):
-        cat_frames = self.cat_frames.values()
-        
         # Calculate available columns
         canvas_width = self.categories_canvas.winfo_width()
-        max_columns = max(1, canvas_width // self.min_cat_frame_width)
-        columns = min(max_columns, len(self.cat_frames))
+        max_columns = max(1, canvas_width // CategoryBlock.min_width)
+        num_of_total_categories = len(self.cat_blocks)
+        new_num_of_columns = min(max_columns, num_of_total_categories)
         
-        # Reset all column weights
-        for col in range(self.categories_frame.grid_size()[0]):
-            self.categories_frame.columnconfigure(col, weight=0)
+        # Unpack all existing column frames
+        for column_frame in self.column_frames:
+            column_frame.pack_forget()
+
+        # Add or remove frames to match how many we need
+        curr_num_of_columns = len(self.column_frames)
+        if curr_num_of_columns < new_num_of_columns:
+            for i in range(new_num_of_columns - curr_num_of_columns):
+                new_column_frame = tk.Frame(self.categories_frame, highlightbackground='gray', highlightthickness=2)
+                self.column_frames.append(new_column_frame)
+        else:
+            self.column_frames = self.column_frames[:new_num_of_columns]
+
+        # Repack all column frames
+        for column_frame in self.column_frames:
+            column_frame.pack(side=tk.LEFT, anchor=tk.NW, expand=True, fill=tk.X)
 
         # Repack listboxes in grid layout
-        for i, cat_frame in enumerate(cat_frames):
-            row = i // columns
-            col = i % columns
-            cat_frame.grid(
-                row=row, 
-                column=col, 
-                padx=self.block_padding, 
-                pady=self.block_padding, 
-                sticky="ew"
-            )
-        
-        # Readd grid weights to fill the extra space
-        for col in range(columns):
-            self.categories_frame.columnconfigure(col, weight=1)
+        i = 0
+        for cat_name, cat_block in self.cat_blocks.items():
+            column_index = i % new_num_of_columns
+            i += 1
+            target_column_frame = self.column_frames[column_index]
+
+            # Clone the block frame into its new column frame
+            cat_block.pack_forget()
+            cat_block_clone = cat_block.copy(new_root=target_column_frame)
+            cat_block_clone.pack(side=tk.TOP, expand=True, fill=tk.X)
+
+            # Update references to clones
+            self.cat_blocks[cat_name] = cat_block_clone
+            cat_block.destroy()
 
     def add_new_item(self, new_item, target_category):
-        target_listbox = self.cat_frames[target_category].listbox
-        target_listbox.insert(tk.END, new_item)
-        
-        # Auto-grow the listbox height
-        item_count = target_listbox.size()
-        new_size = max(self.min_listbox_height, item_count)
-        target_listbox.config(height=new_size)
+        target_cat_block_frame = self.cat_blocks[target_category]
+        target_cat_block_frame.add(new_item)
 
     def on_window_resize(self, event):
         # Add this to avoid timing issues with canvas not growing correctly

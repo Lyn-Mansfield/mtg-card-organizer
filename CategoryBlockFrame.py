@@ -11,6 +11,7 @@ class CategoryBlockFrame(tk.Frame):
         # Category/Keybind storage
         self.cat_blocks = {}
         self.key_bindings = {}
+        self.all_items = set([])
 
         # Category canvas to house scrollbar
         self.categories_canvas = tk.Canvas(
@@ -91,6 +92,7 @@ class CategoryBlockFrame(tk.Frame):
         # Initialize root to the categories frame
         new_cat_block = CategoryBlock(
             self.categories_frame, 
+            self,
             keybind,
             name, 
             self._on_keystroke, 
@@ -110,6 +112,7 @@ class CategoryBlockFrame(tk.Frame):
 
         del self.key_bindings[deleted_keybind]
         del self.cat_blocks[category_name]
+        self.all_items -= deleted_cat_block.all_items
         deleted_cat_block.destroy()
 
         self.reorganize_cat_blocks()
@@ -165,6 +168,10 @@ class CategoryBlockFrame(tk.Frame):
 #----------------------------------------------------------------------------------------------------#
     def add_new_item(self, new_item, target_category):
         target_cat_block_frame = self.cat_blocks[target_category]
+        if new_item in self.all_items:
+            print("already added!")
+            return
+            
         target_cat_block_frame.insert(new_item)
 #----------------------------------------------------------------------------------------------------#
     def on_window_resize(self, event):

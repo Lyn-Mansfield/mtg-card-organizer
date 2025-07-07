@@ -7,7 +7,7 @@ class CategoryBlock(tk.Frame):
     min_width = 210
     min_height = 6
 #----------------------------------------------------------------------------------------------------#
-    def __init__(self, root, keybind, name, keystroke_command, delete_command, data=None):
+    def __init__(self, root, block_frame_root, keybind, name, keystroke_command, delete_command, data=None):
         if not (isinstance(keybind, str) and isinstance(name, str)): 
             raise TypeError("keybind and name must be strings")
         if data is not None and hasattr(data, '__iter__') == False: 
@@ -19,7 +19,10 @@ class CategoryBlock(tk.Frame):
             width=self.min_width,
             highlightthickness=1
         )
+
+        self.all_items = set([])
         self.root = root
+        self.block_frame_root = block_frame_root
 
         self.top_frame = tk.Frame(self)
         self.top_frame.pack(side=tk.TOP, expand=True, fill=tk.X)
@@ -78,6 +81,7 @@ class CategoryBlock(tk.Frame):
 
         cat_block_clone = CategoryBlock(
             new_root, 
+            self.block_frame_root,
             self.keybind,
             self.name, 
             self.keystroke_command,
@@ -108,15 +112,10 @@ class CategoryBlock(tk.Frame):
         self.listbox.selection_set(index)
 #----------------------------------------------------------------------------------------------------#
     def insert(self, new_item):
-        all_items = self.listbox.get(0, tk.END)
-        all_original_items = [self._extract_name(item) for item in all_items]
-        item_already_exists = new_item in all_original_items
-
-        if item_already_exists:
-            print('item already exists!')
-        else:
-            self.listbox.insert(tk.END, new_item)
-            self.resize()
+        self.all_items.add(new_item)
+        self.block_frame_root.all_items.add(new_item)
+        self.listbox.insert(tk.END, new_item)
+        self.resize()
 #----------------------------------------------------------------------------------------------------#
     def _extract_name(self, string):
         result = re.match(r'(.+) x\d+', string)
@@ -180,13 +179,18 @@ class CategoryBlock(tk.Frame):
             self.subtract()
 #----------------------------------------------------------------------------------------------------#
     def delete(self, index):
+        original_name = self._extract_name(self.get(index))
+        self.all_items.remove(original_name)
+        self.block_frame_root.all_items.remove(original_name)
         self.listbox.delete(index)
         self.resize()
 #----------------------------------------------------------------------------------------------------#
     def delete_selected_entry(self, event=None):
         print('trying to delete!')
         selected_index = self.listbox.curselection()
+        deleted_item = self.get(selected_index)
         self.delete(selected_index)
+        return deleted_item
 #----------------------------------------------------------------------------------------------------#
     def ask_to_delete(self):
         if messagebox.askyesno("Delete", f"Delete {self.header_name}?", icon='question'):

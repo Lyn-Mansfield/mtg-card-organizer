@@ -56,14 +56,19 @@ class CategoryBlockFrame(tk.Frame):
     def _on_keystroke(self, curr_cat_block, event):
         """Handle key presses for moving cards from category to category"""
         print('generic keystroke detected...')
+        print(event.keysym)
 
         match event.keysym:
             case "BackSpace" | "Delete":
                 curr_cat_block.delete_selected_entry() 
             case "equal":
                 curr_cat_block.add()
+            case "plus":
+                curr_cat_block.add_5()
             case "minus":
-                pass
+                curr_cat_block.subtract()
+            case "underscore":
+                curr_cat_block.subtract_5()
             case _:
                 self._transfer_card(curr_cat_block, event.char)
 #----------------------------------------------------------------------------------------------------#

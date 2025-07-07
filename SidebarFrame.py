@@ -6,7 +6,6 @@ class SidebarFrame(tk.Frame):
         # Everything lives in self
         super().__init__(root, **kwargs)
         
-
         # Centered frame, since we want everything in the middle
         self.centered_frame = tk.Frame(self)
         self.centered_frame.pack(expand=True)

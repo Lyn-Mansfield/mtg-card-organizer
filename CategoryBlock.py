@@ -108,19 +108,32 @@ class CategoryBlock(tk.Frame):
         self.listbox.selection_set(index)
 #----------------------------------------------------------------------------------------------------#
     def insert(self, new_item):
-        self.listbox.insert(tk.END, new_item)
-        self.resize()
+        all_items = self.listbox.get(0, tk.END)
+        all_original_items = [self._extract_name(item) for item in all_items]
+        item_already_exists = new_item in all_original_items
+
+        if item_already_exists:
+            print('item already exists!')
+        else:
+            self.listbox.insert(tk.END, new_item)
+            self.resize()
 #----------------------------------------------------------------------------------------------------#
     def _extract_name(self, string):
-        return re.match(r'(.+) x\d+', string).group(1)
-
+        result = re.match(r'(.+) x\d+', string)
+        if result:
+            return result.group(1)
+        # If no match is found, then the whole string comprises the name
+        else:
+            return string
+#----------------------------------------------------------------------------------------------------#
     def _extract_current_count(self, string):
         result = re.search(r'x(\d+)$', string)
         if result:
             return int(result.group(1))
+        # If no match is found, then there is only 1
         else:
             return 1
-
+#----------------------------------------------------------------------------------------------------#
     def add(self):
         target_idx = self.selected_index()
         full_target_string = self.get(target_idx)
@@ -135,9 +148,36 @@ class CategoryBlock(tk.Frame):
         new_name = f"{original_name} x{count}"
         self.set(target_idx, new_name)
 #----------------------------------------------------------------------------------------------------#
-    def subtract(self, new_item):
-        self.listbox.insert(tk.END, new_item)
-        self.resize()
+    def add_5(self):
+        for _ in range(5):
+            self.add()
+#----------------------------------------------------------------------------------------------------#
+    def subtract(self):
+        target_idx = self.selected_index()
+        full_target_string = self.get(target_idx)
+        count = self._extract_current_count(full_target_string)
+
+        # If we're removing 1 of 1, then just delete the entry
+        if count == 1:
+            self.delete(target_idx)
+            return
+
+        original_name = self._extract_name(full_target_string)
+        count -= 1
+
+        if count == 1:
+            new_name = original_name
+        else:
+            new_name = f"{original_name} x{count}"
+        self.set(target_idx, new_name)
+#----------------------------------------------------------------------------------------------------#
+    def subtract_5(self):
+        target_idx = self.selected_index()
+        full_target_string = self.get(target_idx)
+        count = self._extract_current_count(full_target_string)
+
+        for _ in range(min(count, 5)):
+            self.subtract()
 #----------------------------------------------------------------------------------------------------#
     def delete(self, index):
         self.listbox.delete(index)

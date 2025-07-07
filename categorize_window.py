@@ -15,6 +15,7 @@ class MultiColumnListboxApp:
 
         # Sidebar frame
         self.sidebar_frame = SidebarFrame(root, highlightbackground='yellow', highlightthickness=4)
+        self.sidebar_frame.pack(side=tk.LEFT, padx=10, pady=10, fill=tk.Y)
 
         # Body frame
         self.body_frame = tk.Frame(root, highlightbackground='red', highlightthickness=4)

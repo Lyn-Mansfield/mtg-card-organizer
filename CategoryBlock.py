@@ -1,11 +1,10 @@
 import tkinter as tk
 from tkinter import messagebox
 
-class CategoryBlock:
+class CategoryBlock(tk.Frame):
     # Category block configuration
-    min_width = 250
+    min_width = 210
     min_height = 6
-    block_padding = 5
 #----------------------------------------------------------------------------------------------------#
     def __init__(self, root, keybind, name, keystroke_command, delete_command, data=None):
         if not (isinstance(keybind, str) and isinstance(name, str)): 
@@ -13,16 +12,15 @@ class CategoryBlock:
         if data is not None and hasattr(data, '__iter__') == False: 
             raise TypeError("data must be iterable")
 
-        self.root = root
-        self.whole_frame = tk.Frame(
-            self.root,
+        super().__init__(root,
+            highlightbackground='blue',
             height=300,
             width=self.min_width,
-            highlightbackground='blue',
             highlightthickness=1
         )
+        self.root = root
 
-        self.top_frame = tk.Frame(self.whole_frame)
+        self.top_frame = tk.Frame(self)
         self.top_frame.pack(side=tk.TOP, expand=True, fill=tk.X)
 
         # Category header
@@ -47,7 +45,7 @@ class CategoryBlock:
         )
         self.menu_button.place(relx=1.0, rely=0.4, anchor='e')
 
-        self.menu = tk.Menu(self.whole_frame, tearoff=0)
+        self.menu = tk.Menu(self, tearoff=0)
         self.menu.add_command(label="Option 1", command=lambda: self.menu_action(1))
         self.menu.add_command(label="Option 2", command=lambda: self.menu_action(2))
         self.menu.add_separator()
@@ -55,7 +53,7 @@ class CategoryBlock:
 
         # Cards listbox
         self.listbox = tk.Listbox(
-            self.whole_frame,
+            self,
             height=self.min_height
         )
         if data is not None:
@@ -115,19 +113,6 @@ class CategoryBlock:
         selected_index = self.listbox.curselection()
         self.delete(selected_index)
 #----------------------------------------------------------------------------------------------------#
-    def pack(self, side=None, padx=None, pady=None, expand=False, fill=None):
-        if padx is None:
-            padx = self.block_padding
-        if pady is None:
-            pady = self.block_padding
-        self.whole_frame.pack(side=side, padx=padx, pady=pady, expand=expand, fill=fill)
-#----------------------------------------------------------------------------------------------------#
-    def pack_forget(self):
-        self.whole_frame.pack_forget()
-#----------------------------------------------------------------------------------------------------#
     def ask_to_delete(self):
         if messagebox.askyesno("Delete", f"Delete {self.header_name}?", icon='question'):
             self.delete_command(self.name)
-#----------------------------------------------------------------------------------------------------#
-    def destroy(self):
-        self.whole_frame.destroy()

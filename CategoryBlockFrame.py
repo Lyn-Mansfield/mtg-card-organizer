@@ -2,23 +2,19 @@ import tkinter as tk
 from tkinter import ttk
 from CategoryBlock import CategoryBlock
 
-class CategoryBlockFrame:
-    def __init__(self, root, delete_cat_command=None, highlightbackground=None, highlightthickness=None):
+class CategoryBlockFrame(tk.Frame):
+    def __init__(self, root, delete_cat_command=None, **kwargs):
+        # Everything lives in self
+        super().__init__(root, **kwargs)
+        self.bind('<Configure>', self.on_window_resize)
+
         # Category/Keybind storage
         self.cat_blocks = {}
         self.key_bindings = {}
 
-        # Whole frame, where everything lives
-        self.whole_frame = tk.Frame(
-            root, 
-            highlightbackground=highlightbackground, 
-            highlightthickness=highlightthickness
-        )
-        self.whole_frame.bind('<Configure>', self.on_window_resize)
-
         # Category canvas to house scrollbar
         self.categories_canvas = tk.Canvas(
-            self.whole_frame,
+            self,
             highlightbackground='black',
             highlightthickness=4
         )
@@ -80,9 +76,6 @@ class CategoryBlockFrame:
         # Remove from current block, transfer to new block
         curr_cat_block.delete(selected_index)
         target_cat_block.add(selected_card)
-#----------------------------------------------------------------------------------------------------#
-    def pack(self, side=None, padx=None, pady=None, expand=False, fill=None):
-        self.whole_frame.pack(side=side, padx=padx, pady=pady, expand=expand, fill=fill)
 #----------------------------------------------------------------------------------------------------#
     def add_category(self, keybind, name):
         # Initialize root to the categories frame
@@ -166,7 +159,7 @@ class CategoryBlockFrame:
 #----------------------------------------------------------------------------------------------------#
     def on_window_resize(self, event):
         # Add this to avoid timing issues with canvas not growing correctly
-        self.whole_frame.update_idletasks()
+        self.update_idletasks()
 
         # Leave some space for the scrollbar
         new_inner_width = self.categories_canvas.winfo_width() - self.scrollbar.winfo_width()

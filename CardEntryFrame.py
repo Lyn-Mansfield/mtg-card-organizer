@@ -2,18 +2,14 @@ import pandas as pd
 import tkinter as tk
 from tkinter import ttk
 
-class CardEntryFrame:
-    def __init__(self, root, add_item_command=None, add_cat_command=None, highlightbackground=None, highlightthickness=None):
-        # Whole frame, thing everything is inside of
-        self.whole_frame = tk.Frame(
-            root, 
-            highlightbackground=highlightbackground, 
-            highlightthickness=highlightthickness
-        )
+class CardEntryFrame(tk.Frame):
+    def __init__(self, root, add_item_command=None, add_cat_command=None, **kwargs):
+        # Everything lives in self
+        super().__init__(root, **kwargs)
 
         # Entries frame
         self.entries_frame = tk.Frame(
-            self.whole_frame, 
+            self, 
             highlightbackground='brown', 
             highlightthickness=2
         )
@@ -40,7 +36,7 @@ class CardEntryFrame:
         self.add_cat_frame.pack(side=tk.LEFT, fill=tk.X)
 
         # Custom category entry
-        one_char_validation = (self.whole_frame.register(self._validate_one_char), '%P')
+        one_char_validation = (self.register(self._validate_one_char), '%P')
         self.keybind_entry = tk.Entry(
             self.add_cat_frame, 
             width=1,
@@ -60,7 +56,7 @@ class CardEntryFrame:
         self.add_button.pack(side=tk.LEFT)
 
         # Update label
-        self.update_label = tk.Label(self.whole_frame, text='')
+        self.update_label = tk.Label(self, text='')
         self.update_label.pack(side=tk.BOTTOM, expand=True, fill=tk.X)
 #----------------------------------------------------------------------------------------------------#
     def _validate_one_char(self, P):
@@ -68,9 +64,6 @@ class CardEntryFrame:
             return True
         else:
             return False
-#----------------------------------------------------------------------------------------------------#
-    def pack(self, side=None, padx=None, pady=None, expand=False, fill=None):
-        self.whole_frame.pack(side=side, padx=padx, pady=pady, expand=expand, fill=fill)
 #----------------------------------------------------------------------------------------------------#
     def get_curr_category(self):
         return self.target_category.get()

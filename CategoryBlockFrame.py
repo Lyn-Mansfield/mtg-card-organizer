@@ -57,10 +57,15 @@ class CategoryBlockFrame(tk.Frame):
         """Handle key presses for moving cards from category to category"""
         print('generic keystroke detected...')
 
-        if event.keysym == 'BackSpace' or event.keysym == 'Delete':
-            curr_cat_block.delete_selected_entry() 
-        else:
-            self._transfer_card(curr_cat_block, event.char)
+        match event.keysym:
+            case "BackSpace" | "Delete":
+                curr_cat_block.delete_selected_entry() 
+            case "equal":
+                curr_cat_block.add()
+            case "minus":
+                pass
+            case _:
+                self._transfer_card(curr_cat_block, event.char)
 #----------------------------------------------------------------------------------------------------#
     def _transfer_card(self, curr_cat_block, keybind):
         if keybind not in self.key_bindings.keys():
@@ -68,14 +73,14 @@ class CategoryBlockFrame(tk.Frame):
         if curr_cat_block.size() == 0:
             return
 
-        selected_index = curr_cat_block.curselection()[0]
+        selected_index = curr_cat_block.selected_index()
         selected_card = curr_cat_block.get(selected_index)
         target_category_name = self.key_bindings[keybind]
         target_cat_block = self.cat_blocks[target_category_name]
 
         # Remove from current block, transfer to new block
         curr_cat_block.delete(selected_index)
-        target_cat_block.add(selected_card)
+        target_cat_block.insert(selected_card)
 #----------------------------------------------------------------------------------------------------#
     def add_category(self, keybind, name):
         # Initialize root to the categories frame
@@ -155,7 +160,7 @@ class CategoryBlockFrame(tk.Frame):
 #----------------------------------------------------------------------------------------------------#
     def add_new_item(self, new_item, target_category):
         target_cat_block_frame = self.cat_blocks[target_category]
-        target_cat_block_frame.add(new_item)
+        target_cat_block_frame.insert(new_item)
 #----------------------------------------------------------------------------------------------------#
     def on_window_resize(self, event):
         # Add this to avoid timing issues with canvas not growing correctly

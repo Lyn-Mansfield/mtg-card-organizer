@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import messagebox
+import re
 
 class CategoryBlock(tk.Frame):
     # Category block configuration
@@ -94,13 +95,47 @@ class CategoryBlock(tk.Frame):
         new_size = max(self.min_height, item_count)
         self.listbox.config(height=new_size)
 #----------------------------------------------------------------------------------------------------#
-    def curselection(self):
-        return self.listbox.curselection()
+    # returns the currently selected index
+    def selected_index(self):
+        return self.listbox.curselection()[0]
 #----------------------------------------------------------------------------------------------------#
     def get(self, index):
         return self.listbox.get(index)
 #----------------------------------------------------------------------------------------------------#
-    def add(self, new_item):
+    def set(self, index, replacement):
+        self.listbox.delete(index)
+        self.listbox.insert(index, replacement)
+        self.listbox.selection_set(index)
+#----------------------------------------------------------------------------------------------------#
+    def insert(self, new_item):
+        self.listbox.insert(tk.END, new_item)
+        self.resize()
+#----------------------------------------------------------------------------------------------------#
+    def _extract_name(self, string):
+        return re.match(r'(.+) x\d+', string).group(1)
+
+    def _extract_current_count(self, string):
+        result = re.search(r'x(\d+)$', string)
+        if result:
+            return int(result.group(1))
+        else:
+            return 1
+
+    def add(self):
+        target_idx = self.selected_index()
+        full_target_string = self.get(target_idx)
+        count = self._extract_current_count(full_target_string)
+
+        if count == 1:
+            original_name = full_target_string
+        else:
+            original_name = self._extract_name(full_target_string)
+
+        count += 1
+        new_name = f"{original_name} x{count}"
+        self.set(target_idx, new_name)
+#----------------------------------------------------------------------------------------------------#
+    def subtract(self, new_item):
         self.listbox.insert(tk.END, new_item)
         self.resize()
 #----------------------------------------------------------------------------------------------------#

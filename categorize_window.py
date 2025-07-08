@@ -95,11 +95,11 @@ class MultiColumnListboxApp:
         print("trying to add new item!")
         # Add an item to the selected category
         target_category = self.input_frame.get_curr_category()
-        new_item = self.input_frame.output_card_search()
+        new_item_row = self.input_frame.output_card_search()
 
-        if new_item is None:
+        if new_item_row is None:
             return
-        self.block_frame.add_new_item(new_item, target_category)
+        self.block_frame.add_new_item(new_item_row, target_category)
 
 
 root = tk.Tk()

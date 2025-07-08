@@ -1,6 +1,6 @@
 import tkinter as tk
+import pandas as pd
 from tkinter import messagebox
-import re
 from UpdateLabel import UpdateLabel
 
 class CategoryBlock(tk.Frame):
@@ -8,7 +8,7 @@ class CategoryBlock(tk.Frame):
     min_width = 210
     min_height = 6
 #----------------------------------------------------------------------------------------------------#
-    def __init__(self, root, block_frame_root, keybind, name, keystroke_command, delete_command, data=None):
+    def __init__(self, root, keybind, name, keystroke_command, delete_command, data=None):
         if not (isinstance(keybind, str) and isinstance(name, str)): 
             raise TypeError("keybind and name must be strings")
         if data is not None and hasattr(data, '__iter__') == False: 
@@ -20,10 +20,7 @@ class CategoryBlock(tk.Frame):
             width=self.min_width,
             highlightthickness=1
         )
-
-        self.all_items = set([])
         self.root = root
-        self.block_frame_root = block_frame_root
 
         self.top_frame = tk.Frame(self)
         self.top_frame.pack(side=tk.TOP, expand=True, fill=tk.X)
@@ -61,15 +58,15 @@ class CategoryBlock(tk.Frame):
             self,
             height=self.min_height
         )
-        if data is not None:
-            for item in data:
-                self.insert(item)
         self.listbox.pack(side=tk.TOP, expand=True, fill=tk.X)
 
         # Bind transfer command
         self.keystroke_command = keystroke_command
         self.delete_command = delete_command
         self.listbox.bind('<Key>', lambda event: self.keystroke_command(self, event))
+
+        self.items_df = pd.DataFrame() if data is None else data
+        self.update_listbox()
 #----------------------------------------------------------------------------------------------------#
     def show_menu(self):
         menu_x_pos = self.menu_button.winfo_rootx()
@@ -82,19 +79,28 @@ class CategoryBlock(tk.Frame):
 
         cat_block_clone = CategoryBlock(
             new_root, 
-            self.block_frame_root,
             self.keybind,
             self.name, 
             self.keystroke_command,
             self.delete_command,
-            data=self.listbox.get(0, tk.END)
+            data=self.items_df
         )
         return cat_block_clone
 #----------------------------------------------------------------------------------------------------#
     def size(self):
         return self.listbox.size()
 #----------------------------------------------------------------------------------------------------#
-    def resize(self):
+    def update_listbox(self):
+        new_names = self.items_df.apply(lambda row: f"{row['name']} x{row['count']}" if row['count'] > 1 else row['name'], axis=1)
+        # If the DataFrame is empty, then it will be a DataFrame, otherwise will be a Series
+        if type(new_names) == pd.DataFrame:
+            return
+
+        names_list = new_names.to_list()
+        self.listbox.delete(0, tk.END)
+        for new_name in names_list:
+            self.listbox.insert(tk.END, new_name)
+
         # Auto-grow/contract the listbox height
         item_count = self.listbox.size()
         new_size = max(self.min_height, item_count)
@@ -111,46 +117,30 @@ class CategoryBlock(tk.Frame):
     def get(self, index):
         return self.listbox.get(index)
 #----------------------------------------------------------------------------------------------------#
-    def set(self, index, replacement):
+    def set(self, replacement, index):
         self.listbox.delete(index)
         self.listbox.insert(index, replacement)
         self.listbox.selection_set(index)
 #----------------------------------------------------------------------------------------------------#
-    def insert(self, new_item):
-        self.all_items.add(new_item)
-        self.block_frame_root.all_items.add(new_item)
-        self.listbox.insert(tk.END, new_item)
-        self.resize()
+    def insert(self, new_item_row):
+        self.items_df = pd.concat([self.items_df, new_item_row])
+        print(self.items_df)
+        self.update_listbox()
 #----------------------------------------------------------------------------------------------------#
-    def _extract_name(self, string):
-        result = re.match(r'(.+) x\d+', string)
-        if result:
-            return result.group(1)
-        # If no match is found, then the whole string comprises the name
-        else:
-            return string
+    def _get_count(self, index):
+        target_row = self.items_df.iloc[target_idx]
+        return (target_row['name'], target_row['count'])
 #----------------------------------------------------------------------------------------------------#
-    def _extract_current_count(self, string):
-        result = re.search(r'x(\d+)$', string)
-        if result:
-            return int(result.group(1))
-        # If no match is found, then there is only 1
-        else:
-            return 1
+    def _set_count(self, count, index):
+        self.items_df.iloc[target_idx]['count'] = count
 #----------------------------------------------------------------------------------------------------#
     def add(self):
         target_idx = self.selected_index()
-        full_target_string = self.get(target_idx)
-        count = self._extract_current_count(full_target_string)
-
-        if count == 1:
-            original_name = full_target_string
-        else:
-            original_name = self._extract_name(full_target_string)
-
+        count = self._get_count(target_idx)
         count += 1
-        new_name = f"{original_name} x{count}"
-        self.set(target_idx, new_name)
+        self._set_count(count, target_idx)
+
+        self.update_listbox()
 #----------------------------------------------------------------------------------------------------#
     def add_5(self):
         for _ in range(5):
@@ -158,22 +148,14 @@ class CategoryBlock(tk.Frame):
 #----------------------------------------------------------------------------------------------------#
     def subtract(self):
         target_idx = self.selected_index()
-        full_target_string = self.get(target_idx)
-        count = self._extract_current_count(full_target_string)
+        original_name, count = self._get_name_and_count(target_idx)
 
-        # If we're removing 1 of 1, then just delete the entry
-        if count == 1:
-            self.delete(target_idx)
-            return
-
-        original_name = self._extract_name(full_target_string)
         count -= 1
+        self._set_count(count, target_idx)
+        if count == 0:
+            self.delete(target_idx)
 
-        if count == 1:
-            new_name = original_name
-        else:
-            new_name = f"{original_name} x{count}"
-        self.set(target_idx, new_name)
+        self.update_listbox()
 #----------------------------------------------------------------------------------------------------#
     def subtract_5(self):
         target_idx = self.selected_index()
@@ -184,19 +166,15 @@ class CategoryBlock(tk.Frame):
             self.subtract()
 #----------------------------------------------------------------------------------------------------#
     def delete(self, index):
-        original_name = self._extract_name(self.get(index))
-        self.all_items.remove(original_name)
-        self.block_frame_root.all_items.remove(original_name)
-        self.listbox.delete(index)
+        self.items_df.drop(index=index)
+        # Delete somehow -> self.block_frame_root.all_items_df.drop(index=index)
 
         UpdateLabel.report(f"Deleted {original_name} from {self.name}")
-        self.resize()
+        self.update_listbox()
 #----------------------------------------------------------------------------------------------------#
     def delete_selected_entry(self, event=None):
         selected_index = self.listbox.curselection()
-        deleted_item = self.get(selected_index)
         self.delete(selected_index)
-        return deleted_item
 #----------------------------------------------------------------------------------------------------#
     def ask_to_delete(self):
         if messagebox.askyesno("Delete", f"Delete {self.header_name}?", icon='question'):

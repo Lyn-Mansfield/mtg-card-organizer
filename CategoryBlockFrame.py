@@ -1,9 +1,11 @@
 import tkinter as tk
 from tkinter import ttk
+import pandas as pd
 from CategoryBlock import CategoryBlock
 from UpdateLabel import UpdateLabel
 
 class CategoryBlockFrame(tk.Frame):
+    all_items_df = pd.DataFrame()
     def __init__(self, root, delete_cat_command=None, **kwargs):
         # Everything lives in self
         super().__init__(root, **kwargs)
@@ -12,7 +14,7 @@ class CategoryBlockFrame(tk.Frame):
         # Category/Keybind storage
         self.cat_blocks = {}
         self.key_bindings = {}
-        self.all_items = set([])
+        self.all_items_df = pd.DataFrame()
 
         # Category canvas to house scrollbar
         self.categories_canvas = tk.Canvas(
@@ -92,12 +94,12 @@ class CategoryBlockFrame(tk.Frame):
         target_cat_block.goto(tk.END)
 
         UpdateLabel.report(f"{selected_card} moved from {curr_cat_block.name} to {target_cat_block.name} c:")
+        print(self.all_items)
 #----------------------------------------------------------------------------------------------------#
     def add_category(self, keybind, category_name):
         # Initialize root to the categories frame
         new_cat_block = CategoryBlock(
             self.categories_frame, 
-            self,
             keybind,
             category_name, 
             self._on_keystroke, 
@@ -173,13 +175,20 @@ class CategoryBlockFrame(tk.Frame):
         self.categories_canvas.update_idletasks()
         self.categories_canvas.configure(scrollregion=self.categories_canvas.bbox("inner_frame"))
 #----------------------------------------------------------------------------------------------------#
-    def add_new_item(self, new_item, target_category):
+    def add_new_item(self, new_item_row, target_category):
         target_cat_block_frame = self.cat_blocks[target_category]
-        if new_item in self.all_items:
+
+        # Catch the start case when the the df is empty
+        if self.all_items_df.shape[0] > 0 and new_item_row['name'][0] in self.all_items_df['name'].values:
             UpdateLabel.report(f'{new_item} is already added :S')
             return
             
-        target_cat_block_frame.insert(new_item)
+        target_cat_block_frame.insert(new_item_row)
+        new_item_row['category'] = [target_cat_block_frame]
+        self.all_items_df = pd.concat([self.all_items_df, new_item_row])
+
+        print("big bad df:")
+        print(self.all_items_df)
 #----------------------------------------------------------------------------------------------------#
     def on_window_resize(self, event):
         # Add this to avoid timing issues with canvas not growing correctly

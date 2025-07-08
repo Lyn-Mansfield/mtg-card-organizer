@@ -83,9 +83,15 @@ class CardEntryFrame(tk.Frame):
             # if no exact match, then just pick the most popular
             target_card_row = raw_card_data_df.iloc[0]
         
+        # Instantiate the count to 1
+        target_card_row['count'] = 1
+
         target_card_name = target_card_row['name']
         UpdateLabel.report(f'Matched with "{target_card_name}" c:')
-        return target_card_name
+
+        # Turn into a one-row DataFrame 
+        target_card_row = target_card_row.to_frame().T
+        return target_card_row
 #----------------------------------------------------------------------------------------------------#
     def output_new_cat_entries(self):
         keybind = self.keybind_entry.get().strip()

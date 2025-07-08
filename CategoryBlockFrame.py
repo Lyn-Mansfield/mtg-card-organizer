@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
 from CategoryBlock import CategoryBlock
+from UpdateLabel import UpdateLabel
 
 class CategoryBlockFrame(tk.Frame):
     def __init__(self, root, delete_cat_command=None, **kwargs):
@@ -61,7 +62,7 @@ class CategoryBlockFrame(tk.Frame):
 
         match event.keysym:
             case "BackSpace" | "Delete":
-                curr_cat_block.delete_selected_entry() 
+                curr_cat_block.delete_selected_entry()
             case "equal":
                 curr_cat_block.add()
             case "plus":
@@ -87,22 +88,27 @@ class CategoryBlockFrame(tk.Frame):
         # Remove from current block, transfer to new block
         curr_cat_block.delete(selected_index)
         target_cat_block.insert(selected_card)
+        # Go to the card after it's been moved
+        target_cat_block.goto(tk.END)
+
+        UpdateLabel.report(f"{selected_card} moved from {curr_cat_block.name} to {target_cat_block.name} c:")
 #----------------------------------------------------------------------------------------------------#
-    def add_category(self, keybind, name):
+    def add_category(self, keybind, category_name):
         # Initialize root to the categories frame
         new_cat_block = CategoryBlock(
             self.categories_frame, 
             self,
             keybind,
-            name, 
+            category_name, 
             self._on_keystroke, 
             self.delete_cat_command
         )
 
         # Update dictionaries
-        self.cat_blocks[name] = new_cat_block
-        self.key_bindings[keybind] = name
+        self.cat_blocks[category_name] = new_cat_block
+        self.key_bindings[keybind] = category_name
 
+        UpdateLabel.report(f"{category_name} Category added c:")
         # Reorganize the blocks
         self.reorganize_cat_blocks()
 #----------------------------------------------------------------------------------------------------#
@@ -115,6 +121,7 @@ class CategoryBlockFrame(tk.Frame):
         self.all_items -= deleted_cat_block.all_items
         deleted_cat_block.destroy()
 
+        UpdateLabel.report(f"{category_name} Category deleted :S")
         self.reorganize_cat_blocks()
 #----------------------------------------------------------------------------------------------------#
     def reorganize_cat_blocks(self):
@@ -169,7 +176,7 @@ class CategoryBlockFrame(tk.Frame):
     def add_new_item(self, new_item, target_category):
         target_cat_block_frame = self.cat_blocks[target_category]
         if new_item in self.all_items:
-            print("already added!")
+            UpdateLabel.report(f'{new_item} is already added :S')
             return
             
         target_cat_block_frame.insert(new_item)

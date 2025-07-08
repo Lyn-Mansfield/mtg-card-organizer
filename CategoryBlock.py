@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox
 import re
+from UpdateLabel import UpdateLabel
 
 class CategoryBlock(tk.Frame):
     # Category block configuration
@@ -62,7 +63,7 @@ class CategoryBlock(tk.Frame):
         )
         if data is not None:
             for item in data:
-                self.add(item)
+                self.insert(item)
         self.listbox.pack(side=tk.TOP, expand=True, fill=tk.X)
 
         # Bind transfer command
@@ -102,6 +103,10 @@ class CategoryBlock(tk.Frame):
     # returns the currently selected index
     def selected_index(self):
         return self.listbox.curselection()[0]
+#----------------------------------------------------------------------------------------------------#
+    def goto(self, index):
+        self.listbox.focus_set()
+        self.listbox.selection_set(index)
 #----------------------------------------------------------------------------------------------------#
     def get(self, index):
         return self.listbox.get(index)
@@ -183,10 +188,11 @@ class CategoryBlock(tk.Frame):
         self.all_items.remove(original_name)
         self.block_frame_root.all_items.remove(original_name)
         self.listbox.delete(index)
+
+        UpdateLabel.report(f"Deleted {original_name} from {self.name}")
         self.resize()
 #----------------------------------------------------------------------------------------------------#
     def delete_selected_entry(self, event=None):
-        print('trying to delete!')
         selected_index = self.listbox.curselection()
         deleted_item = self.get(selected_index)
         self.delete(selected_index)

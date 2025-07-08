@@ -1,35 +1,28 @@
 import pandas as pd
 import tkinter as tk
 from tkinter import ttk
+from UpdateLabel import UpdateLabel
 
 class CardEntryFrame(tk.Frame):
     def __init__(self, root, add_item_command=None, add_cat_command=None, **kwargs):
         # Everything lives in self
         super().__init__(root, **kwargs)
 
-        # Entries frame
-        self.entries_frame = tk.Frame(
-            self, 
-            highlightbackground='brown', 
-            highlightthickness=2
-        )
-        self.entries_frame.pack(side=tk.TOP, expand=True, fill=tk.X, padx=10, pady=5)
-
         # Card entry
-        self.card_entry = ttk.Entry(self.entries_frame)
+        self.card_entry = ttk.Entry(self)
         self.card_entry.pack(side=tk.LEFT, expand=True, fill=tk.X, padx=(0, 5))
         self.card_entry.bind('<Return>', add_item_command)
 
         # Category Selection Menu
         self.target_category = tk.StringVar(value="Unsorted")
         self.category_menu = ttk.OptionMenu(
-            self.entries_frame, self.target_category, *[], command=lambda _: self.card_entry.focus()
+            self, self.target_category, *[], command=lambda _: self.card_entry.focus()
         )
         self.category_menu.pack(side=tk.LEFT, padx=(0, 5))
 
         # Custom category frame
         self.add_cat_frame = tk.Frame(
-            self.entries_frame, 
+            self, 
             highlightbackground='silver', 
             highlightthickness=2
         )
@@ -54,10 +47,6 @@ class CardEntryFrame(tk.Frame):
             self.add_cat_frame, text="Add", command=add_cat_command
         )
         self.add_button.pack(side=tk.LEFT)
-
-        # Update label
-        self.update_label = tk.Label(self, text='')
-        self.update_label.pack(side=tk.BOTTOM, expand=True, fill=tk.X)
 #----------------------------------------------------------------------------------------------------#
     def _validate_one_char(self, P):
         if len(P) <= 1:
@@ -72,7 +61,7 @@ class CardEntryFrame(tk.Frame):
         original_query = self.card_entry.get()
         self.card_entry.delete(0, tk.END)
         if len(original_query) == 0:
-            self.update_label.config(text='Empty query :c')
+            UpdateLabel.report('Empty query :c')
             return
 
         search_query = original_query.lower().replace(' ', '-')
@@ -80,7 +69,7 @@ class CardEntryFrame(tk.Frame):
             # edhrec ordering is roughly by popularity, with most popular at the top
             search_raw_data = pd.read_json(f"https://api.scryfall.com/cards/search?q={search_query}&order=edhrec")
         except:
-            self.update_label.config(text='No cards found :c')
+            UpdateLabel.report('No cards found :c')
             return
 
         raw_card_data_series = search_raw_data.apply(lambda row: pd.json_normalize(row['data']), axis=1)
@@ -95,19 +84,19 @@ class CardEntryFrame(tk.Frame):
             target_card_row = raw_card_data_df.iloc[0]
         
         target_card_name = target_card_row['name']
-        self.update_label.config(text=f'Matched with "{target_card_name}" c:')
+        UpdateLabel.report(f'Matched with "{target_card_name}" c:')
         return target_card_name
 #----------------------------------------------------------------------------------------------------#
     def output_new_cat_entries(self):
         keybind = self.keybind_entry.get().strip()
         name = self.cat_name_entry.get().strip()
         if len(keybind) == 0 or len(name) == 0:
-            self.update_label.config(text='Invalid keybind and/or category name :c')
+            UpdateLabel.report('Invalid keybind and/or category name :c')
             raise Exception("No input for keybind and/or name")
 
         self.keybind_entry.delete(0, tk.END)
         self.cat_name_entry.delete(0, tk.END)
-        self.update_label.config(text=f'{name} category added, using ({keybind}) to swap c:')
+        UpdateLabel.report(f'{name} category added, using ({keybind}) to swap c:')
         return (keybind, name)
 #----------------------------------------------------------------------------------------------------#
     def add_category(self, keybind, name):

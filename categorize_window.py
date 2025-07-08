@@ -5,6 +5,7 @@ from tkinter import ttk
 from CardEntryFrame import CardEntryFrame
 from CategoryBlockFrame import CategoryBlockFrame
 from SidebarFrame import SidebarFrame
+from UpdateLabel import UpdateLabel
 
 class MultiColumnListboxApp:
     def __init__(self, root):
@@ -21,9 +22,17 @@ class MultiColumnListboxApp:
         self.body_frame = tk.Frame(root, highlightbackground='red', highlightthickness=4)
         self.body_frame.pack(side=tk.LEFT, padx=10, pady=10, expand=True, fill=tk.BOTH)
 
+        # Header frame
+        self.header_frame = tk.Frame(self.body_frame, highlightbackground='purple', highlightthickness=4)
+        self.header_frame.pack(side=tk.TOP, fill=tk.X)
+
+        # Update label
+        self.update_label = UpdateLabel(self.header_frame)
+        self.update_label.pack(side=tk.BOTTOM, fill=tk.X)
+
         # Input frame
         self.input_frame = CardEntryFrame(
-            self.body_frame, 
+            self.header_frame, 
             add_item_command=self.add_new_item, 
             add_cat_command=self.add_custom_category, 
             highlightbackground='white', 
@@ -42,6 +51,8 @@ class MultiColumnListboxApp:
 
         # Add default categories
         self._add_default_categories()
+        # Scrub update label after
+        UpdateLabel.clear()
 #----------------------------------------------------------------------------------------------------#
     def _add_default_categories(self):
         # Initial setup

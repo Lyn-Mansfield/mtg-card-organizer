@@ -85,7 +85,7 @@ class CategoryBlock(tk.Frame):
             case "underscore":
                 self.subtract_5()
             case _:
-                CategoryBlockFrame._transfer_card(self, event.char)
+                CardDB.transfer(self, event.char)
 #----------------------------------------------------------------------------------------------------#
     def print_central_db(self):
         print(f"Central DB:")
@@ -117,12 +117,15 @@ class CategoryBlock(tk.Frame):
         return self.listbox.size()
 #----------------------------------------------------------------------------------------------------#
     def update_listbox(self):
-        new_names = self.items_df.apply(lambda row: f"{row['name']} x{row['count']}" if row['count'] > 1 else row['name'], axis=1)
+        new_names_series = self.items_df.apply(lambda row: f"{row['name']} x{row['count']}" if row['count'] > 1 else row['name'], axis=1)
         # If the DataFrame is empty, then it will be a DataFrame, otherwise will be a Series
-        if type(new_names) == pd.DataFrame:
+        if type(new_names_series) == pd.DataFrame:
             return
 
-        names_list = new_names.to_list()
+        names_list = new_names_series.to_list()
+        print(f"Do I exist? {self.winfo_exists()}")
+        
+        # Wipe all names, then re-add them
         self.listbox.delete(0, tk.END)
         for new_name in names_list:
             self.listbox.insert(tk.END, new_name)
@@ -137,7 +140,7 @@ class CategoryBlock(tk.Frame):
         return self.listbox.curselection()[0]
 #----------------------------------------------------------------------------------------------------#
     # returns the currently selected row as a DataFrame
-    def selected_index(self):
+    def selected_row(self):
         selected_row_series = self.items_df.iloc[self.selected_index()]
         return selected_row_series.to_frame().T
 #----------------------------------------------------------------------------------------------------#

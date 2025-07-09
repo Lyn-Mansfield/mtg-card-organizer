@@ -6,10 +6,6 @@ from UpdateLabel import UpdateLabel
 from CardDB import CardDB
 
 class CategoryBlockFrame(tk.Frame):
-    # Category/Keybind storage
-    keys_and_cats = {}
-    names_and_cats = {}
-
     def __init__(self, root, delete_cat_command=None, **kwargs):
         # Everything lives in self
         super().__init__(root, **kwargs)
@@ -56,38 +52,6 @@ class CategoryBlockFrame(tk.Frame):
         if categories_frame_height > categories_canvas_height:
             self.categories_canvas.yview_scroll(-1 * event.delta, "units")
 #----------------------------------------------------------------------------------------------------#
-    def _on_keystroke(self, curr_cat_block, event):
-        """Handle key presses for moving cards from category to category"""
-        print('generic keystroke detected...')
-        print(event.keysym)
-
-        match event.keysym:
-            case "BackSpace" | "Delete":
-                curr_cat_block.delete_selected_entry()
-            case "equal":
-                curr_cat_block.add()
-            case "plus":
-                curr_cat_block.add_5()
-            case "minus":
-                curr_cat_block.subtract()
-            case "underscore":
-                curr_cat_block.subtract_5()
-            case _:
-                self._transfer_card(curr_cat_block, event.char)
-#----------------------------------------------------------------------------------------------------#
-    @classmethod
-    def _transfer_card(cls, old_cat_block, keybind):
-        if keybind not in cls.keys_and_cats.keys():
-            return
-        if curr_cat_block.size() == 0:
-            return
-
-        new_cat_block = cls.keys_and_cats[keybind]
-        CardDB.transfer(old_cat_block, new_cat_block)
-
-        UpdateLabel.report(f"{selected_card} moved from {curr_cat_block.name} to {target_cat_block.name} c:")
-        print(self.all_items)
-#----------------------------------------------------------------------------------------------------#
     def add_category(self, keybind, category_name):
         # Initialize root to the categories frame
         new_cat_block = CategoryBlock(
@@ -96,21 +60,14 @@ class CategoryBlockFrame(tk.Frame):
             category_name, 
             self.delete_cat_command
         )
-
         # Update dictionaries
-        self.keys_and_cats[keybind] = new_cat_block
-        self.names_and_cats[category_name] = new_cat_block
+        CardDB.add_category(keybind, category_name, new_cat_block)
         UpdateLabel.report(f"{category_name} Category added c:")
         # Reorganize the blocks
         self.reorganize_cat_blocks()
 #----------------------------------------------------------------------------------------------------#
     def delete_category(self, category_name):
-        deleted_cat_block = self.names_and_cats[category_name]
-        deleted_keybind = deleted_cat_block.keybind
-
-        del self.keys_and_cats[deleted_keybind]
-        del self.names_and_cats[category_name]
-        deleted_cat_block.destroy()
+        CardDB.delete_category(category_name)
 
         UpdateLabel.report(f"{category_name} Category deleted :S")
         self.reorganize_cat_blocks()
@@ -119,7 +76,7 @@ class CategoryBlockFrame(tk.Frame):
         # Calculate available columns
         canvas_width = self.categories_canvas.winfo_width()
         max_columns = max(1, canvas_width // CategoryBlock.min_width)
-        num_of_total_categories = len(self.names_and_cats)
+        num_of_total_categories = len(CardDB.names_and_cats)
         new_num_of_columns = min(max_columns, num_of_total_categories)
         
         # Unpack all existing column frames
@@ -145,7 +102,7 @@ class CategoryBlockFrame(tk.Frame):
 
         # Clone/repack category blocks into column frames
         i = 0
-        for cat_name, cat_block in self.names_and_cats.items():
+        for cat_name, cat_block in CardDB.names_and_cats.items():
             column_index = i % new_num_of_columns
             i += 1
             target_column_frame = self.column_frames[column_index]
@@ -156,7 +113,7 @@ class CategoryBlockFrame(tk.Frame):
             cat_block_clone.pack(side=tk.TOP, expand=True, fill=tk.X)
 
             # Update references to clones
-            self.names_and_cats[cat_name] = cat_block_clone
+            CardDB.names_and_cats[cat_name] = cat_block_clone
             cat_block.destroy()
 
         # Update scrollregion
@@ -166,7 +123,7 @@ class CategoryBlockFrame(tk.Frame):
 #----------------------------------------------------------------------------------------------------#
     # Item rows are given as one-row DataFrames
     def add_new_item(self, new_item_row, target_category):
-        target_cat_block_frame = self.names_and_cats[target_category]
+        target_cat_block_frame = CardDB.names_and_cats[target_category]
 
         new_item_name = new_item_row.index[0]
         # Catch the start case when the the df is empty

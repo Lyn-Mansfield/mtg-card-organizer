@@ -2,9 +2,8 @@ import tkinter as tk
 import pandas as pd
 
 
-test_pd = pd.DataFrame({1: [1,2], 2:[3,4], 4:[6,7]})
-print(test_pd.T)
-
-test_series = pd.Series([1,2,3,4])
-x = test_series.to_frame()
-print(x.T)
+x = pd.Series([1,4,9,16], index=['a','b','c','d'])
+y = pd.DataFrame(zip(['a','b','c','d'], [1,4,9,16]))
+y = y.set_index(0)
+z = y.iloc[0]
+print(z.name)

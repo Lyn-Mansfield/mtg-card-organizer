@@ -2,13 +2,14 @@ import tkinter as tk
 import pandas as pd
 from tkinter import messagebox
 from UpdateLabel import UpdateLabel
+from CardDB import CardDB
 
 class CategoryBlock(tk.Frame):
     # Category block configuration
     min_width = 210
     min_height = 6
 #----------------------------------------------------------------------------------------------------#
-    def __init__(self, root, keybind, name, keystroke_command, delete_command, data=None):
+    def __init__(self, root, keybind, name, delete_command, data=None):
         if not (isinstance(keybind, str) and isinstance(name, str)): 
             raise TypeError("keybind and name must be strings")
         if data is not None and hasattr(data, '__iter__') == False: 
@@ -48,8 +49,8 @@ class CategoryBlock(tk.Frame):
         self.menu_button.place(relx=1.0, rely=0.4, anchor='e')
 
         self.menu = tk.Menu(self, tearoff=0)
-        self.menu.add_command(label="Option 1", command=lambda: self.menu_action(1))
-        self.menu.add_command(label="Option 2", command=lambda: self.menu_action(2))
+        self.menu.add_command(label="Print central DB", command=self.print_central_db)
+        self.menu.add_command(label="Print instance DB", command=self.print_db)
         self.menu.add_separator()
         self.menu.add_command(label="Delete", command=self.ask_to_delete)
 
@@ -61,12 +62,38 @@ class CategoryBlock(tk.Frame):
         self.listbox.pack(side=tk.TOP, expand=True, fill=tk.X)
 
         # Bind transfer command
-        self.keystroke_command = keystroke_command
         self.delete_command = delete_command
-        self.listbox.bind('<Key>', lambda event: self.keystroke_command(self, event))
+        self.listbox.bind('<Key>', lambda event: self._on_keystroke(event))
 
         self.items_df = pd.DataFrame() if data is None else data
         self.update_listbox()
+#----------------------------------------------------------------------------------------------------#
+    def _on_keystroke(self, event):
+        """Handle key presses for moving cards from category to category"""
+        print('generic keystroke detected...')
+        print(event.keysym)
+
+        match event.keysym:
+            case "BackSpace" | "Delete":
+                self.delete_selected_entry()
+            case "equal":
+                self.add()
+            case "plus":
+                self.add_5()
+            case "minus":
+                self.subtract()
+            case "underscore":
+                self.subtract_5()
+            case _:
+                CategoryBlockFrame._transfer_card(self, event.char)
+#----------------------------------------------------------------------------------------------------#
+    def print_central_db(self):
+        print(f"Central DB:")
+        print(CardDB.cards_df)
+#----------------------------------------------------------------------------------------------------#
+    def print_db(self):
+        print(f"{self.name} Category's DB:")
+        print(self.items_df)
 #----------------------------------------------------------------------------------------------------#
     def show_menu(self):
         menu_x_pos = self.menu_button.winfo_rootx()
@@ -81,7 +108,6 @@ class CategoryBlock(tk.Frame):
             new_root, 
             self.keybind,
             self.name, 
-            self.keystroke_command,
             self.delete_command,
             data=self.items_df
         )
@@ -110,72 +136,69 @@ class CategoryBlock(tk.Frame):
     def selected_index(self):
         return self.listbox.curselection()[0]
 #----------------------------------------------------------------------------------------------------#
-    def goto(self, index):
-        self.listbox.focus_set()
-        self.listbox.selection_set(index)
+    # returns the currently selected row as a DataFrame
+    def selected_index(self):
+        selected_row_series = self.items_df.iloc[self.selected_index()]
+        return selected_row_series.to_frame().T
 #----------------------------------------------------------------------------------------------------#
     def get(self, index):
         return self.listbox.get(index)
 #----------------------------------------------------------------------------------------------------#
-    def set(self, replacement, index):
-        self.listbox.delete(index)
-        self.listbox.insert(index, replacement)
+    def goto(self, index):
+        self.listbox.focus_set()
         self.listbox.selection_set(index)
 #----------------------------------------------------------------------------------------------------#
     def insert(self, new_item_row):
         self.items_df = pd.concat([self.items_df, new_item_row])
-        print(self.items_df)
         self.update_listbox()
 #----------------------------------------------------------------------------------------------------#
-    def _get_count(self, index):
-        target_row = self.items_df.iloc[target_idx]
-        return (target_row['name'], target_row['count'])
-#----------------------------------------------------------------------------------------------------#
-    def _set_count(self, count, index):
-        self.items_df.iloc[target_idx]['count'] = count
+    def update_count(self, difference):
+        target_idx = self.selected_index()
+        target_card_name = self.items_df.index[target_idx]
+
+        self.items_df.loc[target_card_name, 'count'] += difference
+        CardDB.update_count(target_card_name, difference)
+
+        new_count = self.items_df.loc[target_card_name, 'count']
+        if new_count <= 0:
+            self.delete(target_card_name)
+
+        self.update_listbox()
+        self.goto(target_idx)
 #----------------------------------------------------------------------------------------------------#
     def add(self):
-        target_idx = self.selected_index()
-        count = self._get_count(target_idx)
-        count += 1
-        self._set_count(count, target_idx)
-
-        self.update_listbox()
+        self.update_count(1)
 #----------------------------------------------------------------------------------------------------#
     def add_5(self):
-        for _ in range(5):
-            self.add()
+        self.update_count(5)
 #----------------------------------------------------------------------------------------------------#
     def subtract(self):
-        target_idx = self.selected_index()
-        original_name, count = self._get_name_and_count(target_idx)
-
-        count -= 1
-        self._set_count(count, target_idx)
-        if count == 0:
-            self.delete(target_idx)
-
-        self.update_listbox()
+        self.update_count(-1)
 #----------------------------------------------------------------------------------------------------#
     def subtract_5(self):
-        target_idx = self.selected_index()
-        full_target_string = self.get(target_idx)
-        count = self._extract_current_count(full_target_string)
-
-        for _ in range(min(count, 5)):
-            self.subtract()
+        self.update_count(-5)
 #----------------------------------------------------------------------------------------------------#
-    def delete(self, index):
-        self.items_df.drop(index=index)
-        # Delete somehow -> self.block_frame_root.all_items_df.drop(index=index)
+    def delete(self, card_name):
+        self.items_df.drop(card_name, inplace=True)
+        CardDB.delete(card_name)
 
-        UpdateLabel.report(f"Deleted {original_name} from {self.name}")
+        UpdateLabel.report(f"Deleted {card_name} from {self.name}")
         self.update_listbox()
 #----------------------------------------------------------------------------------------------------#
     def delete_selected_entry(self, event=None):
-        selected_index = self.listbox.curselection()
-        self.delete(selected_index)
+        try:
+            selected_index = self.listbox.curselection()
+        except:
+            UpdateLabel.report("Nothing to delete :S")
+            return
+        selected_card_name = self.items_df.index[selected_index]
+        self.delete(selected_card_name)
 #----------------------------------------------------------------------------------------------------#
     def ask_to_delete(self):
         if messagebox.askyesno("Delete", f"Delete {self.header_name}?", icon='question'):
             self.delete_command(self.name)
+#----------------------------------------------------------------------------------------------------#
+    def destroy(self):
+        for card_name in self.items_df.index:
+            self.delete(card_name)
+        super().destroy()

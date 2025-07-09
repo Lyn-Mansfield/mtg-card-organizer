@@ -3,18 +3,17 @@ from tkinter import ttk
 import pandas as pd
 from CategoryBlock import CategoryBlock
 from UpdateLabel import UpdateLabel
+from CardDB import CardDB
 
 class CategoryBlockFrame(tk.Frame):
-    all_items_df = pd.DataFrame()
+    # Category/Keybind storage
+    keys_and_cats = {}
+    names_and_cats = {}
+
     def __init__(self, root, delete_cat_command=None, **kwargs):
         # Everything lives in self
         super().__init__(root, **kwargs)
         self.bind('<Configure>', self.on_window_resize)
-
-        # Category/Keybind storage
-        self.cat_blocks = {}
-        self.key_bindings = {}
-        self.all_items_df = pd.DataFrame()
 
         # Category canvas to house scrollbar
         self.categories_canvas = tk.Canvas(
@@ -76,22 +75,15 @@ class CategoryBlockFrame(tk.Frame):
             case _:
                 self._transfer_card(curr_cat_block, event.char)
 #----------------------------------------------------------------------------------------------------#
-    def _transfer_card(self, curr_cat_block, keybind):
-        if keybind not in self.key_bindings.keys():
+    @classmethod
+    def _transfer_card(cls, old_cat_block, keybind):
+        if keybind not in cls.keys_and_cats.keys():
             return
         if curr_cat_block.size() == 0:
             return
 
-        selected_index = curr_cat_block.selected_index()
-        selected_card = curr_cat_block.get(selected_index)
-        target_category_name = self.key_bindings[keybind]
-        target_cat_block = self.cat_blocks[target_category_name]
-
-        # Remove from current block, transfer to new block
-        curr_cat_block.delete(selected_index)
-        target_cat_block.insert(selected_card)
-        # Go to the card after it's been moved
-        target_cat_block.goto(tk.END)
+        new_cat_block = cls.keys_and_cats[keybind]
+        CardDB.transfer(old_cat_block, new_cat_block)
 
         UpdateLabel.report(f"{selected_card} moved from {curr_cat_block.name} to {target_cat_block.name} c:")
         print(self.all_items)
@@ -102,25 +94,22 @@ class CategoryBlockFrame(tk.Frame):
             self.categories_frame, 
             keybind,
             category_name, 
-            self._on_keystroke, 
             self.delete_cat_command
         )
 
         # Update dictionaries
-        self.cat_blocks[category_name] = new_cat_block
-        self.key_bindings[keybind] = category_name
-
+        self.keys_and_cats[keybind] = new_cat_block
+        self.names_and_cats[category_name] = new_cat_block
         UpdateLabel.report(f"{category_name} Category added c:")
         # Reorganize the blocks
         self.reorganize_cat_blocks()
 #----------------------------------------------------------------------------------------------------#
     def delete_category(self, category_name):
-        deleted_cat_block = self.cat_blocks[category_name]
+        deleted_cat_block = self.names_and_cats[category_name]
         deleted_keybind = deleted_cat_block.keybind
 
-        del self.key_bindings[deleted_keybind]
-        del self.cat_blocks[category_name]
-        self.all_items -= deleted_cat_block.all_items
+        del self.keys_and_cats[deleted_keybind]
+        del self.names_and_cats[category_name]
         deleted_cat_block.destroy()
 
         UpdateLabel.report(f"{category_name} Category deleted :S")
@@ -130,7 +119,7 @@ class CategoryBlockFrame(tk.Frame):
         # Calculate available columns
         canvas_width = self.categories_canvas.winfo_width()
         max_columns = max(1, canvas_width // CategoryBlock.min_width)
-        num_of_total_categories = len(self.cat_blocks)
+        num_of_total_categories = len(self.names_and_cats)
         new_num_of_columns = min(max_columns, num_of_total_categories)
         
         # Unpack all existing column frames
@@ -156,7 +145,7 @@ class CategoryBlockFrame(tk.Frame):
 
         # Clone/repack category blocks into column frames
         i = 0
-        for cat_name, cat_block in self.cat_blocks.items():
+        for cat_name, cat_block in self.names_and_cats.items():
             column_index = i % new_num_of_columns
             i += 1
             target_column_frame = self.column_frames[column_index]
@@ -167,7 +156,7 @@ class CategoryBlockFrame(tk.Frame):
             cat_block_clone.pack(side=tk.TOP, expand=True, fill=tk.X)
 
             # Update references to clones
-            self.cat_blocks[cat_name] = cat_block_clone
+            self.names_and_cats[cat_name] = cat_block_clone
             cat_block.destroy()
 
         # Update scrollregion
@@ -175,20 +164,19 @@ class CategoryBlockFrame(tk.Frame):
         self.categories_canvas.update_idletasks()
         self.categories_canvas.configure(scrollregion=self.categories_canvas.bbox("inner_frame"))
 #----------------------------------------------------------------------------------------------------#
+    # Item rows are given as one-row DataFrames
     def add_new_item(self, new_item_row, target_category):
-        target_cat_block_frame = self.cat_blocks[target_category]
+        target_cat_block_frame = self.names_and_cats[target_category]
 
+        new_item_name = new_item_row.index[0]
         # Catch the start case when the the df is empty
-        if self.all_items_df.shape[0] > 0 and new_item_row['name'][0] in self.all_items_df['name'].values:
-            UpdateLabel.report(f'{new_item} is already added :S')
+        if CardDB.contains(new_item_name):
+            UpdateLabel.report(f'{new_item_name} is already added :S')
             return
             
         target_cat_block_frame.insert(new_item_row)
-        new_item_row['category'] = [target_cat_block_frame]
-        self.all_items_df = pd.concat([self.all_items_df, new_item_row])
-
-        print("big bad df:")
-        print(self.all_items_df)
+        new_item_row['main_category'] = [target_cat_block_frame]
+        CardDB.add(new_item_row)
 #----------------------------------------------------------------------------------------------------#
     def on_window_resize(self, event):
         # Add this to avoid timing issues with canvas not growing correctly

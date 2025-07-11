@@ -49,7 +49,7 @@ class CategoryBlock(tk.Frame):
         self.menu_button.place(relx=1.0, rely=0.4, anchor='e')
 
         self.menu = tk.Menu(self, tearoff=0)
-        self.menu.add_command(label="Print central DB", command=self.print_central_db)
+        self.menu.add_command(label="Print central DB", command=CardDB.print_db)
         self.menu.add_command(label="Print instance DB", command=self.print_db)
         self.menu.add_separator()
         self.menu.add_command(label="Delete", command=self.ask_to_delete)
@@ -67,8 +67,7 @@ class CategoryBlock(tk.Frame):
 
         # Initialize local_cards_df if no previous data exists
         self.local_cards_df = pd.DataFrame() if data is None else data
-        if name == 'Unsorted':
-            print(name, self.local_cards_df)
+
         self.update_listbox()
 #----------------------------------------------------------------------------------------------------#
     def _on_keystroke(self, event):
@@ -88,14 +87,7 @@ class CategoryBlock(tk.Frame):
             case "underscore":
                 self.subtract_5()
             case _:
-                print("|=================|")
-                print("!Transferring Card!")
-                print("|=================|")
-                CardDB.transfer(self, event.char)
-#----------------------------------------------------------------------------------------------------#
-    def print_central_db(self):
-        print(f"Central DB:")
-        print(CardDB.cards_df['count'])
+                CardDB.transfer_card(self, event.char)
 #----------------------------------------------------------------------------------------------------#
     def print_db(self):
         print(f"{self.name} Category's DB:")
@@ -106,11 +98,11 @@ class CategoryBlock(tk.Frame):
         menu_y_pos = self.menu_button.winfo_rooty() + self.menu_button.winfo_height()
         self.menu.post(menu_x_pos, menu_y_pos)
 #----------------------------------------------------------------------------------------------------#
+    # Make a copy of this category attached to a new root
     def copy(self, new_root=None):
         if new_root is None:
             new_root = self.root
 
-        # Add a copy of local_cards_df to dereference it from the old one
         cat_block_clone = CategoryBlock(
             new_root, 
             self.keybind,
@@ -120,8 +112,11 @@ class CategoryBlock(tk.Frame):
         )
         return cat_block_clone
 #----------------------------------------------------------------------------------------------------#
+    # Return the number of total cards in this category
     def size(self):
-        return self.listbox.size()
+        if self.local_cards_df.shape[0] == 0:
+            return 0
+        return self.local_cards_df['count'].sum()
 #----------------------------------------------------------------------------------------------------#
     def update_listbox(self):
         new_names_series = self.local_cards_df.apply(lambda row: f"{row.name} x{row['count']}" if row['count'] > 1 else row.name, axis=1)
@@ -159,15 +154,16 @@ class CategoryBlock(tk.Frame):
     def insert(self, new_item_row):
         self.local_cards_df = pd.concat([self.local_cards_df, new_item_row])
         new_item_row['main_category'] = [self]
-        CardDB.add(new_item_row)
+        CardDB.add_card(self, new_item_row)
         self.update_listbox()
 #----------------------------------------------------------------------------------------------------#
-    # Automatically updates the Card DB since self.local_cards_df references the same row in CardDB
     def update_count(self, difference):
         print(f"updating by {difference}")
         target_idx = self.selected_index()
         target_card_name = self.local_cards_df.index[target_idx]
+        # Automatically updates the central DB since they share row references
         self.local_cards_df.loc[target_card_name, 'count'] += difference
+        CardDB._update_sizes()
 
         new_count = self.local_cards_df.loc[target_card_name, 'count']
         if new_count <= 0:
@@ -188,9 +184,10 @@ class CategoryBlock(tk.Frame):
     def subtract_5(self):
         self.update_count(-5)
 #----------------------------------------------------------------------------------------------------#
+    # Deletes a card row from the local df and central df
     def delete(self, card_name):
         self.local_cards_df.drop(card_name, inplace=True)
-        CardDB.delete(card_name)
+        CardDB.delete_card(self, card_name)
 
         UpdateLabel.report(f"Deleted {card_name} from {self.name}")
         self.update_listbox()

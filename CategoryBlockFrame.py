@@ -113,7 +113,7 @@ class CategoryBlockFrame(tk.Frame):
             cat_block_clone.pack(side=tk.TOP, expand=True, fill=tk.X)
 
             # Update references to clones
-            CardDB._update_reference(cat_block_clone)
+            CardDB._update_reference(cat_block, cat_block_clone)
             cat_block.destroy()
 
         # Update scrollregion
@@ -122,8 +122,8 @@ class CategoryBlockFrame(tk.Frame):
         self.categories_canvas.configure(scrollregion=self.categories_canvas.bbox("inner_frame"))
 #----------------------------------------------------------------------------------------------------#
     # Item rows are given as one-row DataFrames
-    def add_new_item(self, new_item_row, target_category):
-        target_cat_block_frame = CardDB.names_and_cats[target_category]
+    def add_new_item(self, new_item_row, target_category_name):
+        target_cat_block_frame = CardDB.names_and_cats[target_category_name]
 
         new_item_name = new_item_row.index[0]
         # Catch the start case when the the df is empty

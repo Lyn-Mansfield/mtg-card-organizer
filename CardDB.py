@@ -14,7 +14,6 @@ class CardDB:
     def contains(cls, name_query):
         if cls.cards_df.shape[0] == 0:
             return False
-        print(name_query)
         return name_query in cls.cards_df.index
 
     @classmethod
@@ -57,12 +56,6 @@ class CardDB:
         new_cat_block.goto(tk.END)
 
         UpdateLabel.report(f"{selected_card_name} moved from {old_cat_block.name} to {new_cat_block.name} c:")
-
-    @classmethod
-    def update_count(cls, card_name, difference):
-        if not cls.contains(card_name):
-            return
-        cls.cards_df.loc[card_name, 'count'] += difference
 
     @classmethod
     def add_category(cls, keybind, category_name, new_cat_block):

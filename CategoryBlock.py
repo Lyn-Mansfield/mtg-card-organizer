@@ -65,7 +65,10 @@ class CategoryBlock(tk.Frame):
         self.delete_command = delete_command
         self.listbox.bind('<Key>', lambda event: self._on_keystroke(event))
 
+        # Initialize items_df if no previous data exists
         self.items_df = pd.DataFrame() if data is None else data
+        if name == 'Unsorted':
+            print(name, self.items_df)
         self.update_listbox()
 #----------------------------------------------------------------------------------------------------#
     def _on_keystroke(self, event):
@@ -89,7 +92,7 @@ class CategoryBlock(tk.Frame):
 #----------------------------------------------------------------------------------------------------#
     def print_central_db(self):
         print(f"Central DB:")
-        print(CardDB.cards_df)
+        print(CardDB.cards_df['count'])
 #----------------------------------------------------------------------------------------------------#
     def print_db(self):
         print(f"{self.name} Category's DB:")
@@ -104,12 +107,13 @@ class CategoryBlock(tk.Frame):
         if new_root is None:
             new_root = self.root
 
+        # Add a copy of items_df to dereference it from the old one
         cat_block_clone = CategoryBlock(
             new_root, 
             self.keybind,
             self.name, 
             self.delete_command,
-            data=self.items_df
+            data=self.items_df.copy()
         )
         return cat_block_clone
 #----------------------------------------------------------------------------------------------------#
@@ -155,13 +159,16 @@ class CategoryBlock(tk.Frame):
         self.items_df = pd.concat([self.items_df, new_item_row])
         self.update_listbox()
 #----------------------------------------------------------------------------------------------------#
+    # Automatically updates the Card DB since self.items_df references the same row in CardDB
     def update_count(self, difference):
+        print(f"updating by {difference}")
         target_idx = self.selected_index()
         target_card_name = self.items_df.index[target_idx]
 
         self.items_df.loc[target_card_name, 'count'] += difference
-        CardDB.update_count(target_card_name, difference)
+        print(self.items_df.loc[target_card_name, 'count'])
 
+        print(self.items_df.loc[target_card_name, 'count'])
         new_count = self.items_df.loc[target_card_name, 'count']
         if new_count <= 0:
             self.delete(target_card_name)
@@ -200,8 +207,3 @@ class CategoryBlock(tk.Frame):
     def ask_to_delete(self):
         if messagebox.askyesno("Delete", f"Delete {self.header_name}?", icon='question'):
             self.delete_command(self.name)
-#----------------------------------------------------------------------------------------------------#
-    def destroy(self):
-        for card_name in self.items_df.index:
-            self.delete(card_name)
-        super().destroy()

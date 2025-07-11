@@ -65,10 +65,10 @@ class CategoryBlock(tk.Frame):
         self.delete_command = delete_command
         self.listbox.bind('<Key>', lambda event: self._on_keystroke(event))
 
-        # Initialize items_df if no previous data exists
-        self.items_df = pd.DataFrame() if data is None else data
+        # Initialize local_cards_df if no previous data exists
+        self.local_cards_df = pd.DataFrame() if data is None else data
         if name == 'Unsorted':
-            print(name, self.items_df)
+            print(name, self.local_cards_df)
         self.update_listbox()
 #----------------------------------------------------------------------------------------------------#
     def _on_keystroke(self, event):
@@ -88,6 +88,9 @@ class CategoryBlock(tk.Frame):
             case "underscore":
                 self.subtract_5()
             case _:
+                print("|=================|")
+                print("!Transferring Card!")
+                print("|=================|")
                 CardDB.transfer(self, event.char)
 #----------------------------------------------------------------------------------------------------#
     def print_central_db(self):
@@ -96,7 +99,7 @@ class CategoryBlock(tk.Frame):
 #----------------------------------------------------------------------------------------------------#
     def print_db(self):
         print(f"{self.name} Category's DB:")
-        print(self.items_df)
+        print(self.local_cards_df)
 #----------------------------------------------------------------------------------------------------#
     def show_menu(self):
         menu_x_pos = self.menu_button.winfo_rootx()
@@ -107,13 +110,13 @@ class CategoryBlock(tk.Frame):
         if new_root is None:
             new_root = self.root
 
-        # Add a copy of items_df to dereference it from the old one
+        # Add a copy of local_cards_df to dereference it from the old one
         cat_block_clone = CategoryBlock(
             new_root, 
             self.keybind,
             self.name, 
             self.delete_command,
-            data=self.items_df.copy()
+            data=self.local_cards_df.copy()
         )
         return cat_block_clone
 #----------------------------------------------------------------------------------------------------#
@@ -121,13 +124,11 @@ class CategoryBlock(tk.Frame):
         return self.listbox.size()
 #----------------------------------------------------------------------------------------------------#
     def update_listbox(self):
-        new_names_series = self.items_df.apply(lambda row: f"{row['name']} x{row['count']}" if row['count'] > 1 else row['name'], axis=1)
+        new_names_series = self.local_cards_df.apply(lambda row: f"{row.name} x{row['count']}" if row['count'] > 1 else row.name, axis=1)
         # If the DataFrame is empty, then it will be a DataFrame, otherwise will be a Series
         if type(new_names_series) == pd.DataFrame:
             return
-
         names_list = new_names_series.to_list()
-        print(f"Do I exist? {self.winfo_exists()}")
         
         # Wipe all names, then re-add them
         self.listbox.delete(0, tk.END)
@@ -143,9 +144,9 @@ class CategoryBlock(tk.Frame):
     def selected_index(self):
         return self.listbox.curselection()[0]
 #----------------------------------------------------------------------------------------------------#
-    # returns the currently selected row as a DataFrame
+    # returns the currently selected row as a DataFrame copy
     def selected_row(self):
-        selected_row_series = self.items_df.iloc[self.selected_index()]
+        selected_row_series = self.local_cards_df.iloc[self.selected_index()]
         return selected_row_series.to_frame().T
 #----------------------------------------------------------------------------------------------------#
     def get(self, index):
@@ -156,20 +157,19 @@ class CategoryBlock(tk.Frame):
         self.listbox.selection_set(index)
 #----------------------------------------------------------------------------------------------------#
     def insert(self, new_item_row):
-        self.items_df = pd.concat([self.items_df, new_item_row])
+        self.local_cards_df = pd.concat([self.local_cards_df, new_item_row])
+        new_item_row['main_category'] = [self]
+        CardDB.add(new_item_row)
         self.update_listbox()
 #----------------------------------------------------------------------------------------------------#
-    # Automatically updates the Card DB since self.items_df references the same row in CardDB
+    # Automatically updates the Card DB since self.local_cards_df references the same row in CardDB
     def update_count(self, difference):
         print(f"updating by {difference}")
         target_idx = self.selected_index()
-        target_card_name = self.items_df.index[target_idx]
+        target_card_name = self.local_cards_df.index[target_idx]
+        self.local_cards_df.loc[target_card_name, 'count'] += difference
 
-        self.items_df.loc[target_card_name, 'count'] += difference
-        print(self.items_df.loc[target_card_name, 'count'])
-
-        print(self.items_df.loc[target_card_name, 'count'])
-        new_count = self.items_df.loc[target_card_name, 'count']
+        new_count = self.local_cards_df.loc[target_card_name, 'count']
         if new_count <= 0:
             self.delete(target_card_name)
 
@@ -189,7 +189,7 @@ class CategoryBlock(tk.Frame):
         self.update_count(-5)
 #----------------------------------------------------------------------------------------------------#
     def delete(self, card_name):
-        self.items_df.drop(card_name, inplace=True)
+        self.local_cards_df.drop(card_name, inplace=True)
         CardDB.delete(card_name)
 
         UpdateLabel.report(f"Deleted {card_name} from {self.name}")
@@ -201,7 +201,7 @@ class CategoryBlock(tk.Frame):
         except:
             UpdateLabel.report("Nothing to delete :S")
             return
-        selected_card_name = self.items_df.index[selected_index]
+        selected_card_name = self.local_cards_df.index[selected_index]
         self.delete(selected_card_name)
 #----------------------------------------------------------------------------------------------------#
     def ask_to_delete(self):

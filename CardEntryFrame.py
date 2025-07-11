@@ -74,22 +74,22 @@ class CardEntryFrame(tk.Frame):
 
         raw_card_data_series = search_raw_data.apply(lambda row: pd.json_normalize(row['data']), axis=1)
         raw_card_data_df = pd.concat(raw_card_data_series.tolist())
-        try:
-            # first look for if there is an exact match
-            raw_card_data_df['search_name'] = raw_card_data_df['name'].str.lower()
-            raw_card_data_df = raw_card_data_df.set_index('search_name')
-            target_card_row = raw_card_data_df.loc[original_query.lower()]
-        except:
+
+        # first look for if there is an exact match
+        raw_card_data_df = raw_card_data_df.set_index('name')
+        exact_matches_df = raw_card_data_df[raw_card_data_df.index.str.lower() == original_query]
+        if exact_matches_df.shape[0] != 0:
+            target_card_row = exact_matches_df.iloc[0]
+        else:
             # if no exact match, then just pick the most popular
             target_card_row = raw_card_data_df.iloc[0]
-        
+
         # Turn into a one-row DataFrame 
-        target_card_row = target_card_row.to_frame().T
-
-        # Instantiate the count to 1
         target_card_row['count'] = 1
+        target_card_row = target_card_row.to_frame().T
+        print(f"matched with: {target_card_row}")
 
-        target_card_name = target_card_row['name'].iloc[0]
+        target_card_name = target_card_row.index[0]
         UpdateLabel.report(f'Matched with "{target_card_name}" c:')
 
         return target_card_row

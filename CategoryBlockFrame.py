@@ -102,7 +102,7 @@ class CategoryBlockFrame(tk.Frame):
 
         # Clone/repack category blocks into column frames
         i = 0
-        for cat_name, cat_block in CardDB.names_and_cats.items():
+        for cat_block in CardDB.names_and_cats.values():
             column_index = i % new_num_of_columns
             i += 1
             target_column_frame = self.column_frames[column_index]
@@ -113,7 +113,7 @@ class CategoryBlockFrame(tk.Frame):
             cat_block_clone.pack(side=tk.TOP, expand=True, fill=tk.X)
 
             # Update references to clones
-            CardDB.names_and_cats[cat_name] = cat_block_clone
+            CardDB._update_reference(cat_block_clone)
             cat_block.destroy()
 
         # Update scrollregion
@@ -132,8 +132,6 @@ class CategoryBlockFrame(tk.Frame):
             return
             
         target_cat_block_frame.insert(new_item_row)
-        new_item_row['main_category'] = [target_cat_block_frame]
-        CardDB.add(new_item_row)
 #----------------------------------------------------------------------------------------------------#
     def on_window_resize(self, event):
         # Add this to avoid timing issues with canvas not growing correctly

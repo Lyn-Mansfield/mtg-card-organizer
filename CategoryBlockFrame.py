@@ -4,6 +4,7 @@ import pandas as pd
 from CategoryBlock import CategoryBlock
 from UpdateLabel import UpdateLabel
 from CardDB import CardDB
+from CardDisplayFrame import CardDisplayFrame
 
 class CategoryBlockFrame(tk.Frame):
     def __init__(self, root, delete_cat_command=None, **kwargs):
@@ -18,6 +19,7 @@ class CategoryBlockFrame(tk.Frame):
             highlightthickness=4
         )
         self.categories_canvas.pack(side=tk.TOP, expand=True, fill=tk.BOTH)
+        self.categories_canvas.bind('<Button-1>', lambda _: self._on_canvas_click())
 
         self.scrollbar = ttk.Scrollbar(
             self.categories_canvas, 
@@ -44,6 +46,9 @@ class CategoryBlockFrame(tk.Frame):
         # Category column frames list
         self.column_frames = []
         self.delete_cat_command = delete_cat_command
+#----------------------------------------------------------------------------------------------------#
+    def _on_canvas_click(self):
+        CardDisplayFrame.clear_all()
 #----------------------------------------------------------------------------------------------------#
     def _on_mousewheel(self, event):
         # Handle mousewheel only when scrolling makes sense

@@ -66,7 +66,7 @@ class CardEntryFrame(tk.Frame):
 
         search_query = original_query.lower().replace(' ', '-')
         try:
-            # edhrec ordering is roughly by popularity, with most popular at the top
+            # EDHREC ordering is roughly by popularity, with most popular at the top
             search_raw_data = pd.read_json(f"https://api.scryfall.com/cards/search?q={search_query}&order=edhrec")
         except:
             UpdateLabel.report('No cards found :c')
@@ -75,13 +75,14 @@ class CardEntryFrame(tk.Frame):
         raw_card_data_series = search_raw_data.apply(lambda row: pd.json_normalize(row['data']), axis=1)
         raw_card_data_df = pd.concat(raw_card_data_series.tolist())
 
-        # first look for if there is an exact match
+        # First look for if there is an exact match; capitalization doesn't matter
         raw_card_data_df = raw_card_data_df.set_index('name')
-        exact_matches_df = raw_card_data_df[raw_card_data_df.index.str.lower() == original_query]
+        exact_matches_df = raw_card_data_df[raw_card_data_df.index.str.lower() == original_query.lower()]
         if exact_matches_df.shape[0] != 0:
             target_card_row = exact_matches_df.iloc[0]
+        # If no exact match, then just pick the most popular
         else:
-            # if no exact match, then just pick the most popular
+            
             target_card_row = raw_card_data_df.iloc[0]
 
         # Turn into a one-row DataFrame 

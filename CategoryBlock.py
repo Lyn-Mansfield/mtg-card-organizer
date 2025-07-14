@@ -1,8 +1,10 @@
 import tkinter as tk
 import pandas as pd
 from tkinter import messagebox
+from tkinter import simpledialog
 from UpdateLabel import UpdateLabel
 from CardDB import CardDB
+from CardDisplayFrame import CardDisplayFrame
 
 class CategoryBlock(tk.Frame):
     # Category block configuration
@@ -29,11 +31,8 @@ class CategoryBlock(tk.Frame):
         # Category header
         self.keybind = keybind
         self.name = name
-        self.header_name = f"{name} ({keybind})"
-        self.header = tk.Label(
-            self.top_frame, 
-            text=self.header_name
-        )
+        self.header = tk.Label(self.top_frame)
+        self.set_header_name()
         self.header.pack(side=tk.LEFT, expand=True)
 
         # Menu button and context menu
@@ -49,8 +48,8 @@ class CategoryBlock(tk.Frame):
         self.menu_button.place(relx=1.0, rely=0.4, anchor='e')
 
         self.menu = tk.Menu(self, tearoff=0)
-        self.menu.add_command(label="Print central DB", command=CardDB.print_db)
-        self.menu.add_command(label="Print instance DB", command=self.print_db)
+        self.menu.add_command(label="Rebind category", command=self.rebind)
+        self.menu.add_command(label="Rename category", command=self.rename)
         self.menu.add_separator()
         self.menu.add_command(label="Delete", command=self.ask_to_delete)
 
@@ -63,12 +62,22 @@ class CategoryBlock(tk.Frame):
 
         # Bind transfer command
         self.delete_command = delete_command
+        self.listbox.bind('<<ListboxSelect>>', lambda event: self._on_select(event))
         self.listbox.bind('<Key>', lambda event: self._on_keystroke(event))
 
         # Initialize local_cards_df if no previous data exists
         self.local_cards_df = pd.DataFrame() if data is None else data
 
         self.update_listbox()
+#----------------------------------------------------------------------------------------------------#
+    def _on_select(self, event):
+        selected_row = self.selected_row()
+        # If there's nothing to display, then display nothing
+        if selected_row is None:
+            CardDisplayFrame.clear_all()
+            return
+        selected_image_link = selected_row['image_uris.png'].iloc[0]
+        CardDisplayFrame.display_new_image(selected_image_link)
 #----------------------------------------------------------------------------------------------------#
     def _on_keystroke(self, event):
         """Handle key presses for moving cards from category to category"""
@@ -88,10 +97,57 @@ class CategoryBlock(tk.Frame):
                 self.subtract_5()
             case _:
                 CardDB.transfer_card(self, event.char)
+    def set_header_name(self):
+        self.header_name = f"{self.name} ({self.keybind})"
+        self.header.configure(text=self.header_name)
 #----------------------------------------------------------------------------------------------------#
-    def print_db(self):
-        print(f"{self.name} Category's DB:")
-        print(self.local_cards_df)
+    def rebind(self):
+        # Open pop-up to rebind the specified label
+        new_keybind = simpledialog.askstring(
+            "Rebind", 
+            "Enter new bind:",
+            initialvalue=self.keybind,
+            parent=self.winfo_toplevel()
+        )
+        # If no new keybind is given, exit 
+        if not new_keybind:
+            return
+        # If new keybind is longer than one character, yell at user
+        if len(new_keybind) > 1:
+            UpdateLabel.report("Keybind must be one character long :S")
+            return
+        # Check that new keybind isn't already in use
+        if CardDB.contains_keybind(new_keybind):
+            UpdateLabel.report(f"'{keybind}' already being used for {CardDB.keys_and_cats[keybind].name} :c")
+            return
+
+        CardDB.update_keybind(self.keybind, new_keybind, self)
+        self.keybind = new_keybind
+        self.set_header_name()
+#----------------------------------------------------------------------------------------------------#
+    def rename(self):
+        # Open pop-up to rename the specified label
+        new_name = simpledialog.askstring(
+            "Rename", 
+            "Enter new name:",
+            initialvalue=self.name,
+            parent=self.winfo_toplevel()
+        )
+        # If no new name is given, exit 
+        if not new_name:
+            return
+        # If new name is empty, yell at user
+        if len(new_name) == 0:
+            UpdateLabel.report("Name cannot be empty :S")
+            return
+        # Check that new name isn't already in use
+        if CardDB.contains_cat_name(new_name):
+            UpdateLabel.report(f"'{name}' already being used :c")
+            return
+
+        CardDB.update_cat_name(self.name, new_name, self)
+        self.name = new_name
+        self.set_header_name()
 #----------------------------------------------------------------------------------------------------#
     def show_menu(self):
         menu_x_pos = self.menu_button.winfo_rootx()
@@ -118,6 +174,7 @@ class CategoryBlock(tk.Frame):
             return 0
         return self.local_cards_df['count'].sum()
 #----------------------------------------------------------------------------------------------------#
+    # Reloads the items in the listbox so they match the internal DataFrame DB
     def update_listbox(self):
         new_names_series = self.local_cards_df.apply(lambda row: f"{row.name} x{row['count']}" if row['count'] > 1 else row.name, axis=1)
         # If the DataFrame is empty, then it will be a DataFrame, otherwise will be a Series
@@ -135,13 +192,21 @@ class CategoryBlock(tk.Frame):
         new_size = max(self.min_height, item_count)
         self.listbox.config(height=new_size)
 #----------------------------------------------------------------------------------------------------#
-    # returns the currently selected index
+    # Returns the currently selected index 
+    # If nothing is selected, returns None
     def selected_index(self):
-        return self.listbox.curselection()[0]
+        selected_indices = self.listbox.curselection()
+        if not selected_indices:
+            return None
+        return selected_indices[0]
 #----------------------------------------------------------------------------------------------------#
-    # returns the currently selected row as a DataFrame copy
+    # Returns the currently selected row as a DataFrame copy
+    # If no row is selected, returns None
     def selected_row(self):
-        selected_row_series = self.local_cards_df.iloc[self.selected_index()]
+        selected_index = self.selected_index()
+        if selected_index is None:
+            return None
+        selected_row_series = self.local_cards_df.iloc[selected_index]
         return selected_row_series.to_frame().T
 #----------------------------------------------------------------------------------------------------#
     def get(self, index):

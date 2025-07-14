@@ -6,17 +6,26 @@ from CardEntryFrame import CardEntryFrame
 from CategoryBlockFrame import CategoryBlockFrame
 from SidebarFrame import SidebarFrame
 from UpdateLabel import UpdateLabel
+from CardDB import CardDB
+from CardDisplayFrame import CardDisplayFrame
 
 class MultiColumnListboxApp:
     def __init__(self, root):
         # Root setup
         self.root = root
-        self.root.geometry("800x600")
+        self.root.geometry("1080x800")
         self.root.title("MTG Deck Column Organizer")
 
+        self.side_frame = tk.Frame(root, highlightbackground='yellow', highlightthickness=1)
+        self.side_frame.pack(side=tk.LEFT, padx=10, pady=10, fill=tk.Y)
+
+        # Card display frame
+        self.card_display_frame = CardDisplayFrame(self.side_frame)
+        self.card_display_frame.pack(side=tk.TOP)
+
         # Sidebar frame
-        self.sidebar_frame = SidebarFrame(root, highlightbackground='yellow', highlightthickness=4)
-        self.sidebar_frame.pack(side=tk.LEFT, padx=10, pady=10, fill=tk.Y)
+        self.sidebar_frame = SidebarFrame(self.side_frame)
+        self.sidebar_frame.pack(side=tk.TOP, padx=10, pady=10, fill=tk.Y)
 
         # Body frame
         self.body_frame = tk.Frame(root, highlightbackground='red', highlightthickness=4)
@@ -80,6 +89,10 @@ class MultiColumnListboxApp:
         try:
             (keybind, name) = self.input_frame.output_new_cat_entries()
         except Exception as e:
+            return
+
+        if CardDB.contains_keybind(keybind):
+            UpdateLabel.report(f"'{keybind}' already being used for {CardDB.keys_and_cats[keybind].name} :c")
             return
 
         self.add_category(keybind, name)

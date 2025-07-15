@@ -7,6 +7,8 @@ from io import BytesIO
 
 class CardDisplayFrame(tk.Frame):
 	image = None
+	image_info_series = None
+	current_side = 'N/A'
 	instances = []
 	# Full-size scale is 750 x 1050, this is half that
 	ideal_viewing_size = (375, 525)
@@ -25,8 +27,28 @@ class CardDisplayFrame(tk.Frame):
 		self.display_port.pack()
 		self.instances.append(self)
 
+		self.transform_button = tk.Button(self, text="Transform (↻)", command=self.transform)
+		self.transform_button.pack()
+
 	def display(self):
 		self.display_port.configure(image=self.image)
+
+	def transform(self):
+		match self.current_side:
+			case 'N/A':
+				return
+			case 'Front':
+				self.current_side = 'Back'
+				back_side_info_df = self.image_info_series['back_side_info']
+				image_link = back_side_info_df['image_uris.png'].item()
+			case 'Back':
+				self.current_side = 'Front'
+				front_side_info_df = self.image_info_series['front_side_info']
+				image_link = front_side_info_df['image_uris.png'].item()
+
+		self.image = self._get_image(image_link)
+		self.display()
+
 
 	def clear(self):
 		self.display_port.configure(
@@ -36,18 +58,40 @@ class CardDisplayFrame(tk.Frame):
 		)
 
 	@classmethod
-	def display_new_image(cls, image_link):
-		response = requests.get(image_link)
-		image = Image.open(BytesIO(response.content))
-
-		resized_image = image.resize(cls.ideal_viewing_size)
-
-		cls.image = ImageTk.PhotoImage(resized_image)
-		# Broadcast image to all display frames
-		for display_frame in cls.instances:
-			display_frame.display()
-
-	@classmethod
 	def clear_all(cls):
 		for display_frame in cls.instances:
 			display_frame.clear()
+		cls.image = None
+
+	@classmethod
+	def _get_image(cls, image_link):
+		response = requests.get(image_link)
+		image = Image.open(BytesIO(response.content))
+		resized_image = image.resize(cls.ideal_viewing_size)
+
+		return ImageTk.PhotoImage(resized_image)
+
+	# Takes in a row series and displays the front side of the card
+	@classmethod
+	def display_new_image(cls, card_row_series):
+		cls.image_info_series = card_row_series
+		# If there's nothing to display, then display nothing
+		if cls.image_info_series is None:
+			print('no row selected!')
+			CardDisplayFrame.clear_all()
+			return
+
+		# If it's a double-sided card, find front-side info and activate Transform button 
+		if cls.image_info_series['transforms'] == True:
+			cls.current_side = 'Front'
+			front_side_info_df = cls.image_info_series['front_side_info']
+			image_link = front_side_info_df['image_uris.png'].item()
+		# Otherwise, image link is stored normally
+		else:
+			cls.current_side = 'N/A'
+			image_link = cls.image_info_series['image_uris.png']
+
+		cls.image = cls._get_image(image_link)
+		# Broadcast image to all display frames
+		for display_frame in cls.instances:
+			display_frame.display()

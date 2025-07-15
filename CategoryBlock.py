@@ -1,7 +1,9 @@
 import tkinter as tk
 import pandas as pd
+import numpy as np
 from tkinter import messagebox
 from tkinter import simpledialog
+import requests
 from UpdateLabel import UpdateLabel
 from CardDB import CardDB
 from CardDisplayFrame import CardDisplayFrame
@@ -71,13 +73,12 @@ class CategoryBlock(tk.Frame):
         self.update_listbox()
 #----------------------------------------------------------------------------------------------------#
     def _on_select(self, event):
+        self.update_idletasks()
+        print(f"Current selection: {self.listbox.curselection()}")
+        print(f"Active item: {self.listbox.get(tk.ACTIVE)}")  # Highlighted vs selected
+        print(f"Focus: {self.listbox is self.root.focus_get()}")
         selected_row = self.selected_row()
-        # If there's nothing to display, then display nothing
-        if selected_row is None:
-            CardDisplayFrame.clear_all()
-            return
-        selected_image_link = selected_row['image_uris.png'].iloc[0]
-        CardDisplayFrame.display_new_image(selected_image_link)
+        CardDisplayFrame.display_new_image(selected_row)
 #----------------------------------------------------------------------------------------------------#
     def _on_keystroke(self, event):
         """Handle key presses for moving cards from category to category"""
@@ -200,14 +201,14 @@ class CategoryBlock(tk.Frame):
             return None
         return selected_indices[0]
 #----------------------------------------------------------------------------------------------------#
-    # Returns the currently selected row as a DataFrame copy
+    # Returns the currently selected row as a Series
     # If no row is selected, returns None
     def selected_row(self):
         selected_index = self.selected_index()
         if selected_index is None:
             return None
         selected_row_series = self.local_cards_df.iloc[selected_index]
-        return selected_row_series.to_frame().T
+        return selected_row_series
 #----------------------------------------------------------------------------------------------------#
     def get(self, index):
         return self.listbox.get(index)

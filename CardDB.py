@@ -34,11 +34,12 @@ class CardDB:
 			return False
 		return cat_name_query in cls.names_and_cats.keys()
 #----------------------------------------------------------------------------------------------------#
+	# Return card Series of the same name
 	@classmethod
 	def find(cls, name_query):
 		if not cls.contains(name_query):
 			return None
-		return cls.cards_df.query("name == @name_query")
+		return cls.cards_df.loc[name_query]
 #----------------------------------------------------------------------------------------------------#
 	@classmethod
 	def _update_sizes(cls):

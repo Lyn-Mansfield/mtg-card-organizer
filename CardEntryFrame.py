@@ -1,6 +1,7 @@
 import pandas as pd
 import tkinter as tk
 from tkinter import ttk
+import requests
 from UpdateLabel import UpdateLabel
 
 class CardEntryFrame(tk.Frame):
@@ -67,29 +68,42 @@ class CardEntryFrame(tk.Frame):
         search_query = original_query.lower().replace(' ', '-')
         try:
             # EDHREC ordering is roughly by popularity, with most popular at the top
-            search_raw_data = pd.read_json(f"https://api.scryfall.com/cards/search?q={search_query}&order=edhrec")
+            search_raw_data = requests.get(f"https://api.scryfall.com/cards/search?q={search_query}&order=edhrec")
+            raw_json_dict = search_raw_data.json()
+            raw_data_df = pd.DataFrame.from_dict(raw_json_dict)
         except:
             UpdateLabel.report('No cards found :c')
             return
 
-        raw_card_data_series = search_raw_data.apply(lambda row: pd.json_normalize(row['data']), axis=1)
+        raw_card_data_series = raw_data_df.apply(lambda row: pd.json_normalize(row['data']), axis=1)
         raw_card_data_df = pd.concat(raw_card_data_series.tolist())
 
         # First look for if there is an exact match; capitalization doesn't matter
         raw_card_data_df = raw_card_data_df.set_index('name')
         exact_matches_df = raw_card_data_df[raw_card_data_df.index.str.lower() == original_query.lower()]
         if exact_matches_df.shape[0] != 0:
-            target_card_row = exact_matches_df.iloc[0]
+            target_card_series = exact_matches_df.iloc[0]
         # If no exact match, then just pick the most popular
         else:
-            
-            target_card_row = raw_card_data_df.iloc[0]
+            target_card_series = raw_card_data_df.iloc[0]
+        # Set the starting count to 1
+        target_card_series['count'] = 1
+
+        # Handle double-sided cards
+        # Stores side info as DataFrames
+        if 'card_faces' in target_card_series.index:
+            target_card_series['transforms'] = True
+            card_faces_info = target_card_series['card_faces']
+            front_side_json, back_side_json = card_faces_info[0], card_faces_info[1]
+            target_card_series['front_side_info'] = pd.json_normalize(front_side_json)
+            target_card_series['back_side_info'] = pd.json_normalize(back_side_json)
+            # target_card_row['front_info'] = 
+        else:
+            target_card_series['transforms'] = False
 
         # Turn into a one-row DataFrame 
-        target_card_row['count'] = 1
-        target_card_row = target_card_row.to_frame().T
-        print(f"matched with: {target_card_row}")
-
+        target_card_row = target_card_series.to_frame().T
+        
         target_card_name = target_card_row.index[0]
         UpdateLabel.report(f'Matched with "{target_card_name}" c:')
 

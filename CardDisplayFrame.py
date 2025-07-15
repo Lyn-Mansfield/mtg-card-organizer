@@ -33,23 +33,6 @@ class CardDisplayFrame(tk.Frame):
 	def display(self):
 		self.display_port.configure(image=self.image)
 
-	def transform(self):
-		match self.current_side:
-			case 'N/A':
-				return
-			case 'Front':
-				self.current_side = 'Back'
-				back_side_info_df = self.image_info_series['back_side_info']
-				image_link = back_side_info_df['image_uris.png'].item()
-			case 'Back':
-				self.current_side = 'Front'
-				front_side_info_df = self.image_info_series['front_side_info']
-				image_link = front_side_info_df['image_uris.png'].item()
-
-		self.image = self._get_image(image_link)
-		self.display()
-
-
 	def clear(self):
 		self.display_port.configure(
 			image=self.pixel,
@@ -70,6 +53,12 @@ class CardDisplayFrame(tk.Frame):
 		resized_image = image.resize(cls.ideal_viewing_size)
 
 		return ImageTk.PhotoImage(resized_image)
+
+	# Broadcast image to all display frames
+	@classmethod
+	def _broadcast(cls):
+		for display_frame in cls.instances:
+			display_frame.display()
 
 	# Takes in a row series and displays the front side of the card
 	@classmethod
@@ -92,6 +81,21 @@ class CardDisplayFrame(tk.Frame):
 			image_link = cls.image_info_series['image_uris.png']
 
 		cls.image = cls._get_image(image_link)
-		# Broadcast image to all display frames
-		for display_frame in cls.instances:
-			display_frame.display()
+		cls._broadcast()
+
+	@classmethod
+	def transform(cls):
+		match cls.current_side:
+			case 'N/A':
+				return
+			case 'Front':
+				cls.current_side = 'Back'
+				back_side_info_df = cls.image_info_series['back_side_info']
+				image_link = back_side_info_df['image_uris.png'].item()
+			case 'Back':
+				cls.current_side = 'Front'
+				front_side_info_df = cls.image_info_series['front_side_info']
+				image_link = front_side_info_df['image_uris.png'].item()
+
+		cls.image = cls._get_image(image_link)
+		cls._broadcast()

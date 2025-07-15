@@ -92,6 +92,7 @@ class CardEntryFrame(tk.Frame):
         # Handle double-sided cards
         # Stores side info as DataFrames
         if 'card_faces' in target_card_series.index:
+            print(target_card_series['card_faces'])
             target_card_series['transforms'] = True
             card_faces_info = target_card_series['card_faces']
             front_side_json, back_side_json = card_faces_info[0], card_faces_info[1]

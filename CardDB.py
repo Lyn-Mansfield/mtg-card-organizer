@@ -73,12 +73,12 @@ class CardDB:
 			return
 		new_cat_block = cls.keys_and_cats[keybind]
 
-		selected_card_row = old_cat_block.selected_row()
-		print(selected_card_row)
-		selected_card_name = selected_card_row.index[0]
+		selected_card_series = old_cat_block.selected_row()
+		selected_card_name = selected_card_series.name
 
 		# Remove from current block, transfer to new block
 		old_cat_block.delete(selected_card_name)
+		selected_card_row = selected_card_series.to_frame().T
 		new_cat_block.insert(selected_card_row)
 
 		# Reflect changes in cards_df

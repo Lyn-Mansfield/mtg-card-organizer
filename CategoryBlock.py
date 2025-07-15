@@ -10,7 +10,7 @@ from CardDisplayFrame import CardDisplayFrame
 
 class CategoryBlock(tk.Frame):
     # Category block configuration
-    min_width = 210
+    min_width = 300
     min_height = 6
 #----------------------------------------------------------------------------------------------------#
     def __init__(self, root, keybind, name, delete_command, data=None):

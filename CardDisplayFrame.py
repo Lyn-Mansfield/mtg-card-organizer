@@ -27,8 +27,8 @@ class CardDisplayFrame(tk.Frame):
 		self.display_port.pack()
 		self.instances.append(self)
 
-		self.transform_button = tk.Button(self, text="Transform (↻)", command=self.transform)
-		self.transform_button.pack()
+		self.flip_button = tk.Button(self, text="Flip (↻)", command=self.flip)
+		self.flip_button.pack()
 
 	def display(self):
 		self.display_port.configure(image=self.image)
@@ -70,8 +70,8 @@ class CardDisplayFrame(tk.Frame):
 			CardDisplayFrame.clear_all()
 			return
 
-		# If it's a double-sided card, find front-side info and activate Transform button 
-		if cls.image_info_series['transforms'] == True:
+		# If it's a double-sided card, find front-side info and activate flip button 
+		if cls.image_info_series['flips'] == True:
 			cls.current_side = 'Front'
 			front_side_info_df = cls.image_info_series['front_side_info']
 			image_link = front_side_info_df['image_uris.png'].item()
@@ -84,7 +84,7 @@ class CardDisplayFrame(tk.Frame):
 		cls._broadcast()
 
 	@classmethod
-	def transform(cls):
+	def flip(cls):
 		match cls.current_side:
 			case 'N/A':
 				return

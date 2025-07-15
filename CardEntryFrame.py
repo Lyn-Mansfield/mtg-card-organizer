@@ -1,5 +1,6 @@
 import pandas as pd
 import tkinter as tk
+import numpy as np
 from tkinter import ttk
 import requests
 from UpdateLabel import UpdateLabel
@@ -91,16 +92,16 @@ class CardEntryFrame(tk.Frame):
 
         # Handle double-sided cards
         # Stores side info as DataFrames
-        if 'card_faces' in target_card_series.index:
+        if 'card_faces' in target_card_series.index and target_card_series['card_faces'] is not np.nan:
             print(target_card_series['card_faces'])
-            target_card_series['transforms'] = True
+            target_card_series['flips'] = True
             card_faces_info = target_card_series['card_faces']
             front_side_json, back_side_json = card_faces_info[0], card_faces_info[1]
             target_card_series['front_side_info'] = pd.json_normalize(front_side_json)
             target_card_series['back_side_info'] = pd.json_normalize(back_side_json)
             # target_card_row['front_info'] = 
         else:
-            target_card_series['transforms'] = False
+            target_card_series['flips'] = False
 
         # Turn into a one-row DataFrame 
         target_card_row = target_card_series.to_frame().T

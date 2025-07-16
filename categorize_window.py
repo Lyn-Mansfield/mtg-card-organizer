@@ -16,7 +16,7 @@ class MultiColumnListboxApp:
         self.root.geometry("1080x800")
         self.root.title("MTG Deck Column Organizer")
 
-        self.side_frame = tk.Frame(root, highlightbackground='yellow', highlightthickness=1)
+        self.side_frame = tk.Frame(root) # , highlightbackground='yellow', highlightthickness=1
         self.side_frame.pack(side=tk.LEFT, padx=10, pady=10, fill=tk.Y)
 
         # Card display frame

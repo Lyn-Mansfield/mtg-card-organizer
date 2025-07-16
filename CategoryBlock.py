@@ -1,9 +1,9 @@
 import tkinter as tk
 import pandas as pd
 import numpy as np
+import requests
 from tkinter import messagebox
 from tkinter import simpledialog
-import requests
 from UpdateLabel import UpdateLabel
 from CardDB import CardDB
 from CardDisplayFrame import CardDisplayFrame
@@ -61,9 +61,11 @@ class CategoryBlock(tk.Frame):
             height=self.min_height
         )
         self.listbox.pack(side=tk.TOP, expand=True, fill=tk.X)
+        self.listbox.config(selectmode=tk.SINGLE)
 
         # Bind transfer command
         self.delete_command = delete_command
+        self.listbox.bind('<Button-1>', lambda event: self._on_click(event))
         self.listbox.bind('<<ListboxSelect>>', lambda event: self._on_select(event))
         self.listbox.bind('<Key>', lambda event: self._on_keystroke(event))
 
@@ -72,14 +74,21 @@ class CategoryBlock(tk.Frame):
 
         self.update_listbox()
 #----------------------------------------------------------------------------------------------------#
+    # Sets the focus on the current listbox
+    def _on_click(self, event):
+        self.listbox.update_idletasks()
+        self.goto(tk.END)
+#----------------------------------------------------------------------------------------------------#
+    # Displays the selected card, if there is one selected
     def _on_select(self, event):
-        self.update_idletasks()
-        print(f"Current selection: {self.listbox.curselection()}")
-        print(f"Active item: {self.listbox.get(tk.ACTIVE)}")  # Highlighted vs selected
-        print(f"Focus: {self.listbox is self.root.focus_get()}")
+        self.listbox.update_idletasks()
+        # If current listbox isn't being focused on, then we've clicked away and don't care
+        if self.listbox is not self.root.focus_get():
+            return
         selected_row = self.selected_row()
         CardDisplayFrame.display_new_image(selected_row)
 #----------------------------------------------------------------------------------------------------#
+    # Handles the different keystroke events we have defined, including card transfer
     def _on_keystroke(self, event):
         """Handle key presses for moving cards from category to category"""
         print('generic keystroke detected...')
@@ -87,7 +96,7 @@ class CategoryBlock(tk.Frame):
 
         match event.keysym:
             case "BackSpace" | "Delete":
-                self.delete_selected_entry()
+                self.delete_selected_row()
             case "equal":
                 self.add()
             case "plus":
@@ -98,6 +107,7 @@ class CategoryBlock(tk.Frame):
                 self.subtract_5()
             case _:
                 CardDB.transfer_card(self, event.char)
+#----------------------------------------------------------------------------------------------------#
     def set_header_name(self):
         self.header_name = f"{self.name} ({self.keybind})"
         self.header.configure(text=self.header_name)
@@ -250,7 +260,7 @@ class CategoryBlock(tk.Frame):
     def subtract_5(self):
         self.update_count(-5)
 #----------------------------------------------------------------------------------------------------#
-    # Deletes a card row from the local df and central df
+    # Deletes a card row based on its name from the local df and central df
     def delete(self, card_name):
         self.local_cards_df.drop(card_name, inplace=True)
         CardDB.delete_card(self, card_name)
@@ -258,15 +268,15 @@ class CategoryBlock(tk.Frame):
         UpdateLabel.report(f"Deleted {card_name} from {self.name}")
         self.update_listbox()
 #----------------------------------------------------------------------------------------------------#
-    def delete_selected_entry(self, event=None):
-        try:
-            selected_index = self.listbox.curselection()
-        except:
-            UpdateLabel.report("Nothing to delete :S")
+    # Deletes the currently selected card from the local df and central df
+    def delete_selected_row(self, event=None):
+        selected_row = self.selected_row()
+        if selected_row is None:
             return
-        selected_card_name = self.local_cards_df.index[selected_index]
+        selected_card_name = selected_row.name
         self.delete(selected_card_name)
 #----------------------------------------------------------------------------------------------------#
+    # Confirms with user if they wish to delete this category
     def ask_to_delete(self):
         if messagebox.askyesno("Delete", f"Delete {self.header_name}?", icon='question'):
             self.delete_command(self.name)

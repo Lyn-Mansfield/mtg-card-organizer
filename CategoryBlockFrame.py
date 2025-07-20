@@ -107,7 +107,7 @@ class CategoryBlockFrame(tk.Frame):
 
         # Clone/repack category blocks into column frames
         i = 0
-        for cat_block in CardDB.names_and_cats.values():
+        for cat_block in CardDB.sorted_cat_order():
             column_index = i % new_num_of_columns
             i += 1
             target_column_frame = self.column_frames[column_index]
@@ -130,11 +130,6 @@ class CategoryBlockFrame(tk.Frame):
     def add_new_item(self, new_item_row, target_category_name):
         target_cat_block_frame = CardDB.names_and_cats[target_category_name]
 
-        new_item_name = new_item_row.index[0]
-        # Catch the start case when the the df is empty
-        if CardDB.contains(new_item_name):
-            UpdateLabel.report(f'{new_item_name} is already added :S')
-            return
             
         target_cat_block_frame.insert(new_item_row)
 #----------------------------------------------------------------------------------------------------#

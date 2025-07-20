@@ -53,6 +53,9 @@ class CategoryBlock(tk.Frame):
         self.menu.add_command(label="Rebind category", command=self.rebind)
         self.menu.add_command(label="Rename category", command=self.rename)
         self.menu.add_separator()
+        self.menu.add_command(label="Print Local DB", command=lambda: print(self.local_cards_df))
+        self.menu.add_command(label="Print Card DB", command=CardDB.print_db)
+        self.menu.add_separator()
         self.menu.add_command(label="Delete", command=self.ask_to_delete)
 
         # Cards listbox
@@ -93,6 +96,9 @@ class CategoryBlock(tk.Frame):
         """Handle key presses for moving cards from category to category"""
         print('generic keystroke detected...')
         print(event.keysym)
+        ctrl_state_code = 8
+        ctrl_being_held = event.state == ctrl_state_code
+        print(ctrl_being_held)
 
         match event.keysym:
             case "BackSpace" | "Delete":
@@ -105,8 +111,10 @@ class CategoryBlock(tk.Frame):
                 self.subtract()
             case "underscore":
                 self.subtract_5()
+            case _ if ctrl_being_held:
+                CardDB.add_secondary_category(self, event.char)
             case _:
-                CardDB.transfer_card(self, event.char)
+                CardDB.transfer_main_category(self, event.char)
 #----------------------------------------------------------------------------------------------------#
     def set_header_name(self):
         self.header_name = f"{self.name} ({self.keybind})"
@@ -229,8 +237,6 @@ class CategoryBlock(tk.Frame):
 #----------------------------------------------------------------------------------------------------#
     def insert(self, new_item_row):
         self.local_cards_df = pd.concat([self.local_cards_df, new_item_row])
-        new_item_row['main_category'] = [self]
-        CardDB.add_card(self, new_item_row)
         self.update_listbox()
 #----------------------------------------------------------------------------------------------------#
     def update_count(self, difference):
@@ -263,9 +269,7 @@ class CategoryBlock(tk.Frame):
     # Deletes a card row based on its name from the local df and central df
     def delete(self, card_name):
         self.local_cards_df.drop(card_name, inplace=True)
-        CardDB.delete_card(self, card_name)
-
-        UpdateLabel.report(f"Deleted {card_name} from {self.name}")
+        CardDB.remove_card_from_cat(self, card_name)
         self.update_listbox()
 #----------------------------------------------------------------------------------------------------#
     # Deletes the currently selected card from the local df and central df

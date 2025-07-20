@@ -104,15 +104,19 @@ class MultiColumnListboxApp:
         # delete category block
         self.block_frame.delete_category(category_name)
 #----------------------------------------------------------------------------------------------------#
+    # Register a new card to the card DB
     def add_new_item(self, event):
         print("trying to add new item!")
-        # Add an item to the selected category
-        target_category = self.input_frame.get_curr_category()
         new_item_row = self.input_frame.output_card_search()
 
         if new_item_row is None:
             return
-        self.block_frame.add_new_item(new_item_row, target_category)
+        new_item_name = new_item_row.index[0]
+        if CardDB.contains(new_item_name):
+            UpdateLabel.report(f'{new_item_name} is already added :S')
+            return
+
+        CardDB.add_card(new_item_row)
 
 
 root = tk.Tk()

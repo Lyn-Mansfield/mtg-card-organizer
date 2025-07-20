@@ -83,33 +83,42 @@ class CardEntryFrame(tk.Frame):
         raw_card_data_df = raw_card_data_df.set_index('name')
         exact_matches_df = raw_card_data_df[raw_card_data_df.index.str.lower() == original_query.lower()]
         if exact_matches_df.shape[0] != 0:
-            target_card_series = exact_matches_df.iloc[0]
         # If no exact match, then just pick the most popular
+            target_card_series = exact_matches_df.iloc[0]
         else:
             target_card_series = raw_card_data_df.iloc[0]
-        # Set the starting count to 1
-        target_card_series['count'] = 1
 
-        # Handle double-sided cards
-        # Stores side info as DataFrames
-        if 'card_faces' in target_card_series.index and target_card_series['card_faces'] is not np.nan:
-            print(target_card_series['card_faces'])
-            target_card_series['flips'] = True
-            card_faces_info = target_card_series['card_faces']
-            front_side_json, back_side_json = card_faces_info[0], card_faces_info[1]
-            target_card_series['front_side_info'] = pd.json_normalize(front_side_json)
-            target_card_series['back_side_info'] = pd.json_normalize(back_side_json)
-            # target_card_row['front_info'] = 
-        else:
-            target_card_series['flips'] = False
-
-        # Turn into a one-row DataFrame 
-        target_card_row = target_card_series.to_frame().T
+        target_card_row = self._process_raw_card(target_card_series)
         
         target_card_name = target_card_row.index[0]
         UpdateLabel.report(f'Matched with "{target_card_name}" c:')
 
         return target_card_row
+#----------------------------------------------------------------------------------------------------#
+    # Returns a cleaned DataFrame row of processed card info
+    def _process_raw_card(self, card_series):
+        # Avoid 'editing values of a slice' warnings by working with a clean copy
+        card_series = card_series.copy()
+
+        card_series['count'] = 1
+        target_category = self.get_curr_category()
+        card_series['main_category'] = target_category
+        card_series['all_categories'] = [target_category]
+
+        # Handle double-sided cards
+        # Stores side info as DataFrames
+        if 'card_faces' in card_series.index and card_series['card_faces'] is not np.nan:
+            card_series['flips'] = True
+            card_faces_info = card_series['card_faces']
+            front_side_json, back_side_json = card_faces_info[0], card_faces_info[1]
+            card_series['front_side_info'] = pd.json_normalize(front_side_json)
+            card_series['back_side_info'] = pd.json_normalize(back_side_json)
+            # target_card_row['front_info'] = 
+        else:
+            card_series['flips'] = False
+
+        # Turn into a one-row DataFrame 
+        return card_series.to_frame().T
 #----------------------------------------------------------------------------------------------------#
     def output_new_cat_entries(self):
         keybind = self.keybind_entry.get().strip()

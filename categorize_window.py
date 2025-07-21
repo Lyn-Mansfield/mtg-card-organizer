@@ -92,7 +92,7 @@ class MultiColumnListboxApp:
             return
 
         if CardDB.contains_keybind(keybind):
-            UpdateLabel.report(f"'{keybind}' already being used for {CardDB.keys_and_cats[keybind].name} :c")
+            UpdateLabel.report(f"'{keybind}' already being used :c")
             return
 
         self.add_category(keybind, name)

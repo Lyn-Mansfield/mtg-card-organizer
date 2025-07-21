@@ -12,6 +12,9 @@ class CategoryBlockFrame(tk.Frame):
         super().__init__(root, **kwargs)
         self.bind('<Configure>', self.on_window_resize)
 
+        # Register self with card DB
+        CardDB.block_frames.append(self)
+
         # Category canvas to house scrollbar
         self.categories_canvas = tk.Canvas(
             self,
@@ -58,15 +61,7 @@ class CategoryBlockFrame(tk.Frame):
             self.categories_canvas.yview_scroll(-1 * event.delta, "units")
 #----------------------------------------------------------------------------------------------------#
     def add_category(self, keybind, category_name):
-        # Initialize root to the categories frame
-        new_cat_block = CategoryBlock(
-            self.categories_frame, 
-            keybind,
-            category_name, 
-            self.delete_cat_command
-        )
-        # Update dictionaries
-        CardDB.add_category(keybind, category_name, new_cat_block)
+        CardDB.add_category(keybind, category_name)
         UpdateLabel.report(f"{category_name} Category added c:")
         # Reorganize the blocks
         self.reorganize_cat_blocks()
@@ -77,11 +72,20 @@ class CategoryBlockFrame(tk.Frame):
         UpdateLabel.report(f"{category_name} Category deleted :S")
         self.reorganize_cat_blocks()
 #----------------------------------------------------------------------------------------------------#
+    def _destroy_all_blocks(self):
+        for cat_block in CardDB.cat_blocks:
+            cat_block.destroy()
+        CardDB.cat_blocks = []
+#----------------------------------------------------------------------------------------------------#
     def reorganize_cat_blocks(self):
+        print("reordering cat blocks...")
+        # Destroy all previously constructed cat blocks
+        self._destroy_all_blocks()
+
         # Calculate available columns
         canvas_width = self.categories_canvas.winfo_width()
         max_columns = max(1, canvas_width // CategoryBlock.min_width)
-        num_of_total_categories = len(CardDB.names_and_cats)
+        num_of_total_categories = CardDB.categories_df.shape[0]
         new_num_of_columns = min(max_columns, num_of_total_categories)
         
         # Unpack all existing column frames
@@ -105,33 +109,32 @@ class CategoryBlockFrame(tk.Frame):
         for column_frame in self.column_frames:
             column_frame.pack(side=tk.LEFT, anchor=tk.NW, expand=True, fill=tk.X)
 
-        # Clone/repack category blocks into column frames
+        # Recreate category blocks and pack them into column frames
         i = 0
-        for cat_block in CardDB.sorted_cat_order():
+        cat_block_row_insertion_order = CardDB.sorted_cat_order()
+        for cat_block_row in cat_block_row_insertion_order:
             column_index = i % new_num_of_columns
             i += 1
             target_column_frame = self.column_frames[column_index]
 
-            # Clone the block frame into its new column frame
-            cat_block.pack_forget()
-            cat_block_clone = cat_block.copy(new_root=target_column_frame)
-            cat_block_clone.pack(side=tk.TOP, expand=True, fill=tk.X)
+            # Create the cat block in target column based on the row's info
+            # Will fill itself in with cards automatically
+            cat_block = CategoryBlock(
+                target_column_frame,
+                cat_block_row['keybind'],
+                cat_block_row['name'],
+                self.delete_cat_command
+            )
+            cat_block.pack(side=tk.TOP, fill=tk.X)
+            CardDB.cat_blocks.append(cat_block)
 
-            # Update references to clones
-            CardDB._update_reference(cat_block, cat_block_clone)
-            cat_block.destroy()
+        # Attach the cat blocks to the categories df, which will inherently share the same order
+        CardDB.categories_df['cat_block'] = CardDB.cat_blocks
 
         # Update scrollregion
         self.categories_frame.update_idletasks()
         self.categories_canvas.update_idletasks()
         self.categories_canvas.configure(scrollregion=self.categories_canvas.bbox("inner_frame"))
-#----------------------------------------------------------------------------------------------------#
-    # Item rows are given as one-row DataFrames
-    def add_new_item(self, new_item_row, target_category_name):
-        target_cat_block_frame = CardDB.names_and_cats[target_category_name]
-
-            
-        target_cat_block_frame.insert(new_item_row)
 #----------------------------------------------------------------------------------------------------#
     def on_window_resize(self, event):
         # Add this to avoid timing issues with canvas not growing correctly

@@ -13,11 +13,9 @@ class CategoryBlock(tk.Frame):
     min_width = 300
     min_height = 6
 #----------------------------------------------------------------------------------------------------#
-    def __init__(self, root, keybind, name, delete_command, data=None):
+    def __init__(self, root, keybind, name, delete_command):
         if not (isinstance(keybind, str) and isinstance(name, str)): 
             raise TypeError("keybind and name must be strings")
-        if data is not None and hasattr(data, '__iter__') == False: 
-            raise TypeError("data must be iterable")
 
         super().__init__(root,
             highlightbackground='blue',
@@ -72,10 +70,10 @@ class CategoryBlock(tk.Frame):
         self.listbox.bind('<<ListboxSelect>>', lambda event: self._on_select(event))
         self.listbox.bind('<Key>', lambda event: self._on_keystroke(event))
 
-        # Initialize local_cards_df if no previous data exists
-        self.local_cards_df = pd.DataFrame() if data is None else data
+        # Adds all card rows from the card DB to the local DataFrame that live in this category 
+        self.local_cards_df = CardDB.relevant_card_rows(self.name)
 
-        self.update_listbox()
+        self.fill_listbox()
 #----------------------------------------------------------------------------------------------------#
     # Sets the focus on the current listbox
     def _on_click(self, event):
@@ -96,7 +94,7 @@ class CategoryBlock(tk.Frame):
         """Handle key presses for moving cards from category to category"""
         print('generic keystroke detected...')
         print(event.keysym)
-        ctrl_state_code = 8
+        ctrl_state_code = 4
         ctrl_being_held = event.state == ctrl_state_code
         print(ctrl_being_held)
 
@@ -112,9 +110,10 @@ class CategoryBlock(tk.Frame):
             case "underscore":
                 self.subtract_5()
             case _ if ctrl_being_held:
-                CardDB.add_secondary_category(self, event.char)
+                print('adding as secondary: ', event.keysym)
+                CardDB.toggle_secondary_category(self, event.keysym)
             case _:
-                CardDB.transfer_main_category(self, event.char)
+                CardDB.transfer_main_category(self, event.keysym)
 #----------------------------------------------------------------------------------------------------#
     def set_header_name(self):
         self.header_name = f"{self.name} ({self.keybind})"
@@ -140,7 +139,7 @@ class CategoryBlock(tk.Frame):
             UpdateLabel.report(f"'{keybind}' already being used for {CardDB.keys_and_cats[keybind].name} :c")
             return
 
-        CardDB.update_keybind(self.keybind, new_keybind, self)
+        CardDB.update_keybind(new_keybind, self)
         self.keybind = new_keybind
         self.set_header_name()
 #----------------------------------------------------------------------------------------------------#
@@ -164,38 +163,43 @@ class CategoryBlock(tk.Frame):
             UpdateLabel.report(f"'{name}' already being used :c")
             return
 
-        CardDB.update_cat_name(self.name, new_name, self)
-        self.name = new_name
-        self.set_header_name()
+        CardDB.update_cat_name(new_name, self)
 #----------------------------------------------------------------------------------------------------#
     def show_menu(self):
         menu_x_pos = self.menu_button.winfo_rootx()
         menu_y_pos = self.menu_button.winfo_rooty() + self.menu_button.winfo_height()
         self.menu.post(menu_x_pos, menu_y_pos)
 #----------------------------------------------------------------------------------------------------#
-    # Make a copy of this category attached to a new root
-    def copy(self, new_root=None):
-        if new_root is None:
-            new_root = self.root
-
-        cat_block_clone = CategoryBlock(
-            new_root, 
-            self.keybind,
-            self.name, 
-            self.delete_command,
-            data=self.local_cards_df.copy()
-        )
-        return cat_block_clone
-#----------------------------------------------------------------------------------------------------#
     # Return the number of total cards in this category
     def size(self):
         if self.local_cards_df.shape[0] == 0:
             return 0
         return self.local_cards_df['count'].sum()
+
+    def _row_name_template(self, card_row):
+        is_primary = card_row['main_category'] == self.name
+        primary_is_relevant = len(card_row['all_categories']) > 1
+
+        # Only add primary marker if it needs to be clarified
+        if CardDB.primary_only:
+            primary_marker = ''
+        else:
+            primary_marker = '*' if is_primary and primary_is_relevant else ''
+
+        if card_row['count'] > 1:
+            return f"{card_row.name} x{card_row['count']} {primary_marker}" 
+        else:
+            return f"{card_row.name} {primary_marker}"
 #----------------------------------------------------------------------------------------------------#
     # Reloads the items in the listbox so they match the internal DataFrame DB
-    def update_listbox(self):
-        new_names_series = self.local_cards_df.apply(lambda row: f"{row.name} x{row['count']}" if row['count'] > 1 else row.name, axis=1)
+    def fill_listbox(self):
+        # If we're only displaying in primary category, then just show the names and counts normally
+        if CardDB.primary_only:
+            card_rows_to_show = self.local_cards_df.query("main_category == @self.name")
+        # Otherwise, show all cards as normal
+        else:
+            card_rows_to_show = self.local_cards_df
+        new_names_series = card_rows_to_show.apply(lambda card_row: self._row_name_template(card_row), axis=1)
         # If the DataFrame is empty, then it will be a DataFrame, otherwise will be a Series
         if type(new_names_series) == pd.DataFrame:
             return
@@ -228,49 +232,44 @@ class CategoryBlock(tk.Frame):
         selected_row_series = self.local_cards_df.iloc[selected_index]
         return selected_row_series
 #----------------------------------------------------------------------------------------------------#
-    def get(self, index):
-        return self.listbox.get(index)
-#----------------------------------------------------------------------------------------------------#
     def goto(self, index):
         self.listbox.focus_set()
         self.listbox.selection_set(index)
 #----------------------------------------------------------------------------------------------------#
-    def insert(self, new_item_row):
-        self.local_cards_df = pd.concat([self.local_cards_df, new_item_row])
-        self.update_listbox()
+    def focus(self, card_name):
+        self.listbox.focus_set()
+
+        card_index = self.local_cards_df.index.get_loc(card_name)
+        self.listbox.selection_set(card_index)
 #----------------------------------------------------------------------------------------------------#
-    def update_count(self, difference):
+    def _update_count(self, difference):
         print(f"updating by {difference}")
         target_idx = self.selected_index()
         target_card_name = self.local_cards_df.index[target_idx]
-        # Automatically updates the central DB since they share row references
-        self.local_cards_df.loc[target_card_name, 'count'] += difference
-        CardDB._update_sizes()
 
-        new_count = self.local_cards_df.loc[target_card_name, 'count']
+        new_count = self.local_cards_df.loc[target_card_name, 'count'] + difference
+        # If we remove more cards than there are, then remove that card everywhere
         if new_count <= 0:
-            self.delete(target_card_name)
-
-        self.update_listbox()
-        self.goto(target_idx)
+            CardDB.delete_card(target_card_name)
+        # Otherwise, just need to update its count
+        else:
+            CardDB._update_count(target_card_name, difference, self.name)
 #----------------------------------------------------------------------------------------------------#
     def add(self):
-        self.update_count(1)
+        self._update_count(1)
 #----------------------------------------------------------------------------------------------------#
     def add_5(self):
-        self.update_count(5)
+        self._update_count(5)
 #----------------------------------------------------------------------------------------------------#
     def subtract(self):
-        self.update_count(-1)
+        self._update_count(-1)
 #----------------------------------------------------------------------------------------------------#
     def subtract_5(self):
-        self.update_count(-5)
+        self._update_count(-5)
 #----------------------------------------------------------------------------------------------------#
     # Deletes a card row based on its name from the local df and central df
     def delete(self, card_name):
-        self.local_cards_df.drop(card_name, inplace=True)
         CardDB.remove_card_from_cat(self, card_name)
-        self.update_listbox()
 #----------------------------------------------------------------------------------------------------#
     # Deletes the currently selected card from the local df and central df
     def delete_selected_row(self, event=None):

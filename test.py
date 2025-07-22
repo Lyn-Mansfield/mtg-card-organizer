@@ -5,4 +5,6 @@ test_df = pd.DataFrame({'a': [[1,2,3],[3,4,5],[5,6,7]], 'b':[4,5,6]})
 test_series = pd.Series([1,2,3], index=['a','b','c'])
 myseries = pd.Series([1,4,0,7,5], index=['0','1','2','bruh','4'])
 
-print(test_series['d'])
+x = test_series.rename('bruh')
+
+print('a' in x.index)

@@ -84,8 +84,7 @@ class CardEntryFrame(tk.Frame):
         raw_card_data_df = pd.concat(raw_card_data_series.tolist())
 
         # First look for if there is an exact match; capitalization doesn't matter
-        raw_card_data_df = raw_card_data_df.set_index('name')
-        exact_matches_df = raw_card_data_df[raw_card_data_df.index.str.lower() == original_query.lower()]
+        exact_matches_df = raw_card_data_df[raw_card_data_df['name'].str.lower() == original_query.lower()]
         if exact_matches_df.shape[0] != 0:
         # If no exact match, then just pick the most popular
             target_card_series = exact_matches_df.iloc[0]
@@ -101,6 +100,12 @@ class CardEntryFrame(tk.Frame):
 #----------------------------------------------------------------------------------------------------#
     # Returns a cleaned DataFrame row of processed card info
     def _process_raw_card(self, card_series):
+        # Some cards have flavor names, which should be used since that's what appears on the card art
+        if 'flavor_name' in card_series.index:
+            card_series = card_series.rename(card_series['flavor_name'])
+        else:
+            card_series = card_series.rename(card_series['name'])
+
         # Avoid 'editing values of a slice' warnings by working with a clean copy
         card_series = card_series.copy()
 

@@ -47,13 +47,28 @@ class CardDB:
 			return False
 		return cls.categories_df.name.isin([cat_name_query]).any()
 #----------------------------------------------------------------------------------------------------#
-	# Return card Series of the same name
+	# Returns DataFrame of all card rows that have a category in all_categories
+	# Returned in order it should be inserted
 	@classmethod
-	def relevant_card_rows(cls, category_name):
+	def sorted_relevant_card_rows(cls, category_name):
 		# If no cards have been added, return an empty DataFrame
 		if cls.cards_df.shape[0] == 0:
 			return pd.DataFrame()
-		return cls.cards_df[cls.cards_df['all_categories'].apply(lambda x: category_name in x)]
+		relevant_card_rows = cls.cards_df[cls.cards_df['all_categories'].apply(lambda x: category_name in x)]
+
+		match cls.block_order:
+			case 'Alphabetical':
+				return relevant_card_rows.sort_index()
+			case 'Mana Cost':
+				return relevant_card_rows.sort_values(by='cmc', na_position='first')
+			case 'Date Added':
+				return relevant_card_rows.sort_values(by='date_added')
+			case 'Number':
+				return relevant_card_rows.sort_values(by='count')
+			case 'Power':
+				return relevant_card_rows.sort_values(by='power', na_position='first')
+			case 'Toughness':
+				return relevant_card_rows.sort_values(by='toughness', na_position='first')
 #----------------------------------------------------------------------------------------------------#
 	# Return card Series of the same name
 	@classmethod

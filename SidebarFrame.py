@@ -63,7 +63,7 @@ class SidebarFrame(tk.Frame):
         )
         self.block_sort_label.pack(side=tk.TOP, padx=5, pady=5)
 
-        block_sort_options = ['Alphabetical', 'Date Added', 'Number', 'Color', 'Power', 'Toughness']
+        block_sort_options = ['Alphabetical', 'Mana Cost', 'Date Added', 'Number', 'Color', 'Power', 'Toughness']
         self.block_order_options_menu = ttk.OptionMenu(
             self.centered_frame, 
             self.block_order_string_var, 

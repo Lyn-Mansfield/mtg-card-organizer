@@ -71,7 +71,7 @@ class CategoryBlock(tk.Frame):
         self.listbox.bind('<Key>', lambda event: self._on_keystroke(event))
 
         # Adds all card rows from the card DB to the local DataFrame that live in this category 
-        self.local_cards_df = CardDB.relevant_card_rows(self.name)
+        self.local_cards_df = CardDB.sorted_relevant_card_rows(self.name)
 
         self.fill_listbox()
 #----------------------------------------------------------------------------------------------------#
@@ -199,14 +199,14 @@ class CategoryBlock(tk.Frame):
         # Otherwise, show all cards as normal
         else:
             card_rows_to_show = self.local_cards_df
+
         new_names_series = card_rows_to_show.apply(lambda card_row: self._row_name_template(card_row), axis=1)
         # If the DataFrame is empty, then it will be a DataFrame, otherwise will be a Series
         if type(new_names_series) == pd.DataFrame:
             return
-        names_list = new_names_series.to_list()
         
-        # Wipe all names, then re-add them
-        self.listbox.delete(0, tk.END)
+        # Add all names from the list
+        names_list = new_names_series.to_list()
         for new_name in names_list:
             self.listbox.insert(tk.END, new_name)
 

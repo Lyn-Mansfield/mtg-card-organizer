@@ -1,6 +1,7 @@
 import pandas as pd
 import tkinter as tk
 import numpy as np
+import time
 from tkinter import ttk
 import requests
 from UpdateLabel import UpdateLabel
@@ -69,7 +70,10 @@ class CardEntryFrame(tk.Frame):
         search_query = original_query.lower().replace(' ', '-')
         try:
             # EDHREC ordering is roughly by popularity, with most popular at the top
+            start_time = time.time()
+            print('started sending request!')
             search_raw_data = requests.get(f"https://api.scryfall.com/cards/search?q={search_query}&order=edhrec")
+            print(f'finished fetching request in {time.time() - start_time} seconds')
             raw_json_dict = search_raw_data.json()
             raw_data_df = pd.DataFrame.from_dict(raw_json_dict)
         except:
@@ -101,6 +105,16 @@ class CardEntryFrame(tk.Frame):
         card_series = card_series.copy()
 
         card_series['count'] = 1
+        card_series['date_added'] = time.time()
+
+        # Some cards like lands won't have power/toughness values, which is OK
+        try:
+            power_str, toughness_str = card_series['power'], card_series['toughness']
+            card_series['power'] = int(power_str)
+            card_series['toughness'] = int(toughness_str)
+        except (ValueError, KeyError) as e:
+            pass
+        
         target_category = self.get_curr_category()
         card_series['main_category'] = target_category
         card_series['all_categories'] = [target_category]

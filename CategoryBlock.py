@@ -5,15 +5,15 @@ import requests
 from tkinter import messagebox
 from tkinter import simpledialog
 from UpdateLabel import UpdateLabel
-from CardDB import CardDB
+from CardCatManager import CardCatManager
 from CardDisplayFrame import CardDisplayFrame
 
 class CategoryBlock(tk.Frame):
     # Category block configuration
-    min_width = 300
+    min_width = 220
     min_height = 6
 #----------------------------------------------------------------------------------------------------#
-    def __init__(self, root, keybind, name, delete_command):
+    def __init__(self, root, keybind, name):
         if not (isinstance(keybind, str) and isinstance(name, str)): 
             raise TypeError("keybind and name must be strings")
 
@@ -52,7 +52,7 @@ class CategoryBlock(tk.Frame):
         self.menu.add_command(label="Rename category", command=self.rename)
         self.menu.add_separator()
         self.menu.add_command(label="Print Local DB", command=lambda: print(self.local_cards_df))
-        self.menu.add_command(label="Print Card DB", command=CardDB.print_db)
+        self.menu.add_command(label="Print Card DB", command=CardCatManager.print_db)
         self.menu.add_separator()
         self.menu.add_command(label="Delete", command=self.ask_to_delete)
 
@@ -65,13 +65,12 @@ class CategoryBlock(tk.Frame):
         self.listbox.config(selectmode=tk.SINGLE)
 
         # Bind transfer command
-        self.delete_command = delete_command
         self.listbox.bind('<Button-1>', lambda event: self._on_click(event))
         self.listbox.bind('<<ListboxSelect>>', lambda event: self._on_select(event))
         self.listbox.bind('<Key>', lambda event: self._on_keystroke(event))
 
         # Adds all card rows from the card DB to the local DataFrame that live in this category 
-        self.local_cards_df = CardDB.sorted_relevant_card_rows(self.name)
+        self.local_cards_df = CardCatManager.sorted_relevant_card_rows(self.name)
 
         self.fill_listbox()
 #----------------------------------------------------------------------------------------------------#
@@ -111,9 +110,9 @@ class CategoryBlock(tk.Frame):
                 self.subtract_5()
             case _ if ctrl_being_held:
                 print('adding as secondary: ', event.keysym)
-                CardDB.toggle_secondary_category(self, event.keysym)
+                CardCatManager.toggle_secondary_category(self, event.keysym)
             case _:
-                CardDB.transfer_main_category(self, event.keysym)
+                CardCatManager.transfer_main_category(self, event.keysym)
 #----------------------------------------------------------------------------------------------------#
     def set_header_name(self):
         self.header_name = f"{self.name} ({self.keybind})"
@@ -135,11 +134,11 @@ class CategoryBlock(tk.Frame):
             UpdateLabel.report("Keybind must be one character long :S")
             return
         # Check that new keybind isn't already in use
-        if CardDB.contains_keybind(new_keybind):
-            UpdateLabel.report(f"'{keybind}' already being used for {CardDB.keys_and_cats[keybind].name} :c")
+        if CardCatManager.contains_keybind(new_keybind):
+            UpdateLabel.report(f"'{keybind}' already being used for {CardCatManager.keys_and_cats[keybind].name} :c")
             return
 
-        CardDB.update_keybind(new_keybind, self)
+        CardCatManager.update_keybind(new_keybind, self)
         self.keybind = new_keybind
         self.set_header_name()
 #----------------------------------------------------------------------------------------------------#
@@ -159,11 +158,11 @@ class CategoryBlock(tk.Frame):
             UpdateLabel.report("Name cannot be empty :S")
             return
         # Check that new name isn't already in use
-        if CardDB.contains_cat_name(new_name):
+        if CardCatManager.contains_cat_name(new_name):
             UpdateLabel.report(f"'{name}' already being used :c")
             return
 
-        CardDB.update_cat_name(new_name, self)
+        CardCatManager.update_cat_name(new_name, self)
 #----------------------------------------------------------------------------------------------------#
     def show_menu(self):
         menu_x_pos = self.menu_button.winfo_rootx()
@@ -181,7 +180,7 @@ class CategoryBlock(tk.Frame):
         primary_is_relevant = len(card_row['all_categories']) > 1
 
         # Only add primary marker if it needs to be clarified
-        if CardDB.primary_only:
+        if CardCatManager.primary_only:
             primary_marker = ''
         else:
             primary_marker = '*' if is_primary and primary_is_relevant else ''
@@ -193,8 +192,10 @@ class CategoryBlock(tk.Frame):
 #----------------------------------------------------------------------------------------------------#
     # Reloads the items in the listbox so they match the internal DataFrame DB
     def fill_listbox(self):
+        if self.local_cards_df.shape[0] == 0:
+            return
         # If we're only displaying in primary category, then just show the names and counts normally
-        if CardDB.primary_only:
+        if CardCatManager.primary_only:
             card_rows_to_show = self.local_cards_df.query("main_category == @self.name")
         # Otherwise, show all cards as normal
         else:
@@ -250,10 +251,10 @@ class CategoryBlock(tk.Frame):
         new_count = self.local_cards_df.loc[target_card_name, 'count'] + difference
         # If we remove more cards than there are, then remove that card everywhere
         if new_count <= 0:
-            CardDB.delete_card(target_card_name)
+            CardCatManager.delete_card(target_card_name)
         # Otherwise, just need to update its count
         else:
-            CardDB._update_count(target_card_name, difference, self.name)
+            CardCatManager._update_count(target_card_name, difference, self.name)
 #----------------------------------------------------------------------------------------------------#
     def add(self):
         self._update_count(1)
@@ -269,7 +270,7 @@ class CategoryBlock(tk.Frame):
 #----------------------------------------------------------------------------------------------------#
     # Deletes a card row based on its name from the local df and central df
     def delete(self, card_name):
-        CardDB.remove_card_from_cat(self, card_name)
+        CardCatManager.remove_card_from_cat(self, card_name)
 #----------------------------------------------------------------------------------------------------#
     # Deletes the currently selected card from the local df and central df
     def delete_selected_row(self, event=None):
@@ -282,4 +283,4 @@ class CategoryBlock(tk.Frame):
     # Confirms with user if they wish to delete this category
     def ask_to_delete(self):
         if messagebox.askyesno("Delete", f"Delete {self.header_name}?", icon='question'):
-            self.delete_command(self.name)
+            CardCatManager.delete_category(self)

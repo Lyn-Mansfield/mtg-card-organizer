@@ -3,17 +3,16 @@ from tkinter import ttk
 import pandas as pd
 from CategoryBlock import CategoryBlock
 from UpdateLabel import UpdateLabel
-from CardDB import CardDB
+from CardCatManager import CardCatManager
 from CardDisplayFrame import CardDisplayFrame
 
 class CategoryBlockFrame(tk.Frame):
-    def __init__(self, root, delete_cat_command=None, **kwargs):
+    def __init__(self, root, **kwargs):
         # Everything lives in self
         super().__init__(root, **kwargs)
         self.bind('<Configure>', self.on_window_resize)
-
-        # Register self with card DB
-        CardDB.block_frames.append(self)
+        # Register self with CardCatManager
+        CardCatManager.block_frame = self
 
         # Category canvas to house scrollbar
         self.categories_canvas = tk.Canvas(
@@ -48,7 +47,6 @@ class CategoryBlockFrame(tk.Frame):
 
         # Category column frames list
         self.column_frames = []
-        self.delete_cat_command = delete_cat_command
 #----------------------------------------------------------------------------------------------------#
     def _on_canvas_click(self):
         CardDisplayFrame.clear_all()
@@ -61,31 +59,26 @@ class CategoryBlockFrame(tk.Frame):
             self.categories_canvas.yview_scroll(-1 * event.delta, "units")
 #----------------------------------------------------------------------------------------------------#
     def add_category(self, keybind, category_name):
-        CardDB.add_category(keybind, category_name)
+        CardCatManager.add_category(keybind, category_name)
         UpdateLabel.report(f"{category_name} Category added c:")
         # Reorganize the blocks
         self.reorganize_cat_blocks()
 #----------------------------------------------------------------------------------------------------#
     def delete_category(self, category_name):
-        CardDB.delete_category(category_name)
+        CardCatManager.delete_category(category_name)
 
         UpdateLabel.report(f"{category_name} Category deleted :S")
         self.reorganize_cat_blocks()
 #----------------------------------------------------------------------------------------------------#
-    def _destroy_all_blocks(self):
-        for cat_block in CardDB.cat_blocks:
-            cat_block.destroy()
-        CardDB.cat_blocks = []
-#----------------------------------------------------------------------------------------------------#
     def reorganize_cat_blocks(self):
         print("reordering cat blocks...")
         # Destroy all previously constructed cat blocks
-        self._destroy_all_blocks()
+        CardCatManager.destroy_all_blocks()
 
         # Calculate available columns
         canvas_width = self.categories_canvas.winfo_width()
         max_columns = max(1, canvas_width // CategoryBlock.min_width)
-        num_of_total_categories = CardDB.categories_df.shape[0]
+        num_of_total_categories = CardCatManager.categories_df.shape[0]
         new_num_of_columns = min(max_columns, num_of_total_categories)
         
         # Unpack all existing column frames
@@ -111,7 +104,9 @@ class CategoryBlockFrame(tk.Frame):
 
         # Recreate category blocks and pack them into column frames
         i = 0
-        cat_block_row_insertion_order = CardDB.sorted_cat_order()
+        cat_block_row_insertion_order = CardCatManager.sorted_cat_order()
+        print("sorted cat order:")
+        print(cat_block_row_insertion_order)
         for cat_block_row in cat_block_row_insertion_order:
             column_index = i % new_num_of_columns
             i += 1
@@ -122,14 +117,13 @@ class CategoryBlockFrame(tk.Frame):
             cat_block = CategoryBlock(
                 target_column_frame,
                 cat_block_row['keybind'],
-                cat_block_row['name'],
-                self.delete_cat_command
+                cat_block_row['name']
             )
             cat_block.pack(side=tk.TOP, fill=tk.X)
-            CardDB.cat_blocks.append(cat_block)
+            CardCatManager.cat_blocks.append(cat_block)
 
         # Attach the cat blocks to the categories df, which will inherently share the same order
-        CardDB.categories_df['cat_block'] = CardDB.cat_blocks
+        CardCatManager.categories_df['cat_block'] = CardCatManager.cat_blocks
 
         # Update scrollregion
         self.categories_frame.update_idletasks()

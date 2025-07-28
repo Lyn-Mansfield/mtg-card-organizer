@@ -1,15 +1,17 @@
 import tkinter as tk
+from tkinter import messagebox
 import pandas as pd
 import time
 from UpdateLabel import UpdateLabel
 
-class CardDB:
+class CardCatManager:
 	# Card name set as index
 	cards_df = pd.DataFrame()
 	categories_df = pd.DataFrame()
 
 	cat_blocks = []
-	block_frames = []
+	card_entry_frame = None
+	block_frame = None
 
 	# Actual defaults live in SidebarFrame
 	primary_only = None
@@ -76,10 +78,21 @@ class CardDB:
 		if not cls.contains(name_query):
 			return None
 		return cls.cards_df.loc[name_query]
+
+	@classmethod
+	def reorganize_cat_blocks(cls):
+		if cls.card_entry_frame is not None:
+			cls.card_entry_frame.reorganize_cat_blocks()
+		if cls.block_frame is not None:
+			cls.block_frame.reorganize_cat_blocks()
 #----------------------------------------------------------------------------------------------------#
-	# WIP
+	# Reorganizes by size of the 
 	@classmethod
 	def _update_block_frames(cls, focus_card=None, focus_cat_name=None):
+		if cls.categories_df.shape[0] == 0:
+			cls.reorganize_cat_blocks()
+			return
+
 		match cls.cat_order:
 			case 'Date Added':
 				cls.categories_df.sort_values(by='date_added', inplace=True)
@@ -92,11 +105,12 @@ class CardDB:
 			case 'Color':
 				cls._sort_by_color()
 
-		for block_frame in cls.block_frames:
-			block_frame.reorganize_cat_blocks()
+		cls.reorganize_cat_blocks()
+		print(cls.cat_blocks)
+		print(cls.categories_df)
 
 		# Update category sizes
-		cls.categories_df['size'] = cls.categories_df['cat_block'].apply(lambda cat_block: cat_block.size())
+		cls.categories_df['size'] = cls.categories_df['cat_block'].apply(lambda cat_block: 0 if cat_block is None else cat_block.size())
 
 		# Highlight card, if specified
 		if focus_card is None or focus_cat_name is None:
@@ -219,12 +233,18 @@ class CardDB:
 	# Adds a category to the db, linking it to its keybind and name for easy searching
 	@classmethod
 	def add_category(cls, keybind, category_name):
+		if cls.contains_keybind(keybind):
+			UpdateLabel.report(f"'{keybind}' already being used :c")
+			return
+
 		new_cat_block_info_row = pd.DataFrame({
 			'keybind': [keybind], 
 			'name': [category_name],
 			'date_added': [time.time()], 
-			'size': [0]
+			'size': [0],
+			'cat_block': [None]
 		})
+
 		print(f"Adding category {category_name} ({keybind})")
 		cls.categories_df = pd.concat([cls.categories_df, new_cat_block_info_row])
 		
@@ -240,6 +260,29 @@ class CardDB:
 			cls.remove_card_from_cat(cat_block_to_delete, card_name)
 
 		cls._update_block_frames()
+#----------------------------------------------------------------------------------------------------#
+	# Removes all categories and cards, usually in preparation for importing a decklist
+	# Asks beforehand if this is ok
+	@classmethod
+	def destroy_all_categories(cls):
+		user_accepts = messagebox.askyesno(
+			"Deleting All Categories!", 
+			"Are you sure you want to delete all current progress?", 
+			icon='question'
+		)
+		if user_accepts:
+			cls.cards_df = pd.DataFrame()
+			cls.categories_df = pd.DataFrame()
+			cls.destroy_all_blocks()
+
+		cls._update_block_frames()
+		return user_accepts
+#----------------------------------------------------------------------------------------------------#
+	@classmethod
+	def destroy_all_blocks(cls):
+		for cat_block in cls.cat_blocks:
+			cat_block.destroy()
+		cls.cat_blocks = []
 #----------------------------------------------------------------------------------------------------#
 	@classmethod
 	def update_keybind(cls, new_keybind, cat_block):

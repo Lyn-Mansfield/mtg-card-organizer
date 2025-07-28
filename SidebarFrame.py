@@ -1,6 +1,9 @@
 import tkinter as tk
 from tkinter import ttk
-from CardDB import CardDB
+from tkinter.filedialog import askopenfilename
+from CardCatManager import CardCatManager
+import SetParsing
+from UpdateLabel import UpdateLabel
 
 class SidebarFrame(tk.Frame):
     default_primary_only_option = False
@@ -14,7 +17,14 @@ class SidebarFrame(tk.Frame):
         # Centered frame, since we want everything in the middle
         self.centered_frame = tk.Frame(self)
         self.centered_frame.pack(expand=True)
-        
+
+        self.import_button = tk.Button(
+            self.centered_frame, 
+            text="Import (.txt)", 
+            command=self.import_deck
+        )
+        self.import_button.pack()
+
         self.sort_options_title_label = tk.Label(
             self.centered_frame, 
             text='Sort Options',
@@ -46,7 +56,7 @@ class SidebarFrame(tk.Frame):
         self.cat_sort_label.pack(side=tk.TOP, padx=5, pady=5)
 
         options_menu_width = 9
-        # WIP: Add way of broadcasting to CardDB whenever a new option is chosen
+        # WIP: Add way of broadcasting to CardCatManager whenever a new option is chosen
         cat_sort_options = ['Date Added', 'Alphabetical', 'Size', 'Type', 'Color']
         self.cat_order_options_menu = ttk.OptionMenu(
             self.centered_frame, 
@@ -73,6 +83,13 @@ class SidebarFrame(tk.Frame):
         self.block_order_options_menu.pack(side=tk.TOP)
         self.block_order_options_menu.config(width=options_menu_width)
 
+        self.test_button = tk.Button(
+            self.centered_frame, 
+            text="categories test", 
+            command=lambda: print([cat_block.name for cat_block in CardCatManager.cat_blocks])
+        )
+        self.test_button.pack()
+
     # Update card DB when variables change
     # Random trace_add info gets passed in, too, but we can ignore all that
     def _update_class_vars(self, *args):
@@ -80,5 +97,26 @@ class SidebarFrame(tk.Frame):
         cat_order = self.cat_order_string_var.get()
         block_order = self.block_order_string_var.get()
 
-        CardDB._update_class_vars(primary_only, cat_order, block_order)
+        CardCatManager._update_class_vars(primary_only, cat_order, block_order)
+
+    def import_deck(self):
+        filename = askopenfilename()
+        extension = filename[-3:]
+
+        successfully_processed = False
+        match extension:
+            case 'txt':
+                #self.read_txt_decklist(filename)
+                successfully_processed = True
+            case _:
+                UpdateLabel.report(".txt only plz xc")
+                return
+
+        if successfully_processed:
+            UpdateLabel.report(f"Successfully processed {filename} cx")
+
+        SetParsing.read_txt_deck(filename)
+
+
+
 

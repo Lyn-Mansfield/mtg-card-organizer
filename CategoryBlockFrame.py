@@ -105,8 +105,6 @@ class CategoryBlockFrame(tk.Frame):
         # Recreate category blocks and pack them into column frames
         i = 0
         cat_block_row_insertion_order = CardCatManager.sorted_cat_order()
-        print("sorted cat order:")
-        print(cat_block_row_insertion_order)
         for cat_block_row in cat_block_row_insertion_order:
             column_index = i % new_num_of_columns
             i += 1

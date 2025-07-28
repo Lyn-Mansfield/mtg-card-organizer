@@ -13,6 +13,9 @@ from CardCatManager import CardCatManager
 # Captures 1. the count of a card, 2. the name, 3. the set number, and 4. the categories, if given
 card_line_regex = r"^(\d+)x? ([\w\s,'-/]+) \(([[a-zA-Z0-9]+)\) ?(\[.+\])?"
 def create_card_row(line, main_cat):
+	if '{' in line:
+		tags = re.search(r"{(.+)}", line)
+		line = re.sub(r"{.+}", "", line)
 	card_regex = re.match(card_line_regex, line)
 	
 	# Extract categories info, with main_cat being the first one in the list
@@ -32,18 +35,20 @@ def create_card_row(line, main_cat):
 		'count': [count],
 		'main_category': [main_cat],
 		'all_categories': [categories_list]
-		})
+	})
 
 def _generate_post_request(df):
+	
 	def make_row_json(row):
 		name, set_code = row['name'], row['set_code']
 		# Split cards gunk up, but searching on just the first card name works
 		searchable_name = name if '//' not in name else name.split('//')[0].strip()
 		return f'{{"name": "{searchable_name}", "set": "{set_code}"}}'
+	
 	card_json_series = df.apply(lambda row: make_row_json(row), axis=1)
 	card_json_str = card_json_series.str.cat(sep=',\n	')
 	full_json_str = f'{{"identifiers": [\n	{card_json_str}\n]}}'
-	print(full_json_str)
+
 	return json.loads(full_json_str)
 
 def _find_suitable_keybind(cat_name):
@@ -83,11 +88,13 @@ def process_card_info_list(card_info_list):
 
 		# Add count and category info
 		# Reset the indices so that they align with the ones in raw_data_df
-		raw_data_df['count'] = block_df['count'].reset_index(drop=True)
+		raw_data_df['count'] = block_df['count'].reset_index(drop=True).astype(int)
 		raw_data_df['main_category'] = block_df['main_category'].reset_index(drop=True)
 		raw_data_df['all_categories'] = block_df['all_categories'].reset_index(drop=True)
 
 		raw_cards_data_df = pd.concat([raw_cards_data_df, raw_data_df], ignore_index=True)
+		# Wait 0.1 seconds as a courtesy to Scryfall API
+		time.sleep(0.1)
 
 	# Find all unique categories, and then add them
 	unique_categories = card_info_list['all_categories'].explode().unique().tolist()
@@ -96,7 +103,7 @@ def process_card_info_list(card_info_list):
 		CardCatManager.add_category(suitable_keybind, category_name)
 
 	# Process all card rows
-	processed_card_rows_list = raw_cards_data_df.apply(lambda row: process_raw_card_series(row, row['main_category']), axis=1).to_list()
+	processed_card_rows_list = raw_cards_data_df.apply(lambda row: process_raw_card_series(row, row['main_category'], count=row['count'], all_cats=row['all_categories']), axis=1).to_list()
 	# Insert all the cards
 	for processed_card_row in processed_card_rows_list:
 		CardCatManager.add_card(processed_card_row)
@@ -113,7 +120,7 @@ def process_raw_card_series(card_series, main_cat, count=1, all_cats=None):
 	# Avoid 'editing values of a slice' warnings by working with a clean copy
 	card_series = card_series.copy()
 
-	card_series['count'] = 1
+	card_series['count'] = count
 	card_series['date_added'] = time.time()
 
 	# Some cards like lands won't have power/toughness values, which is OK

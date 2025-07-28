@@ -106,8 +106,6 @@ class CardCatManager:
 				cls._sort_by_color()
 
 		cls.reorganize_cat_blocks()
-		print(cls.cat_blocks)
-		print(cls.categories_df)
 
 		# Update category sizes
 		cls.categories_df['size'] = cls.categories_df['cat_block'].apply(lambda cat_block: 0 if cat_block is None else cat_block.size())

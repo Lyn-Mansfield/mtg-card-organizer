@@ -75,9 +75,9 @@ class CardEntryFrame(tk.Frame):
 		try:
 			# EDHREC ordering is roughly by popularity, with most popular at the top
 			start_time = time.time()
-			print('started sending request!')
+			#print('started sending request!')
 			search_raw_data = requests.get(f"https://api.scryfall.com/cards/search?q={search_query}&order=edhrec")
-			print(f'finished fetching request in {time.time() - start_time} seconds')
+			#print(f'finished fetching request in {time.time() - start_time} seconds')
 			raw_json_dict = search_raw_data.json()
 			raw_data_df = pd.json_normalize(raw_json_dict['data'])
 		except:

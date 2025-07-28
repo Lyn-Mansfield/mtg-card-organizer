@@ -51,7 +51,7 @@ class CategoryBlock(tk.Frame):
         self.menu.add_command(label="Rebind category", command=self.rebind)
         self.menu.add_command(label="Rename category", command=self.rename)
         self.menu.add_separator()
-        self.menu.add_command(label="Print Local DB", command=lambda: print(self.local_cards_df))
+        self.menu.add_command(label="Print Local DB", command=lambda: print(self.local_cards_df[['main_category', 'all_categories', 'count']]))
         self.menu.add_command(label="Print Card DB", command=CardCatManager.print_db)
         self.menu.add_separator()
         self.menu.add_command(label="Delete", command=self.ask_to_delete)

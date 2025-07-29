@@ -1,6 +1,5 @@
 import tkinter as tk
 from tkinter import ttk
-from tkinter.filedialog import askopenfilename
 from CardCatManager import CardCatManager
 import SetParsing
 from UpdateLabel import UpdateLabel
@@ -14,12 +13,22 @@ class SidebarFrame(tk.Frame):
 		self.centered_frame = tk.Frame(self)
 		self.centered_frame.pack(expand=True)
 
+		self.buttons_frame = tk.Frame(self.centered_frame)
+		self.buttons_frame.pack()
+		
 		self.import_button = tk.Button(
-			self.centered_frame, 
+			self.buttons_frame, 
 			text="Import (.txt)", 
-			command=self.import_deck
+			command=SetParsing.import_deck
 		)
-		self.import_button.pack()
+		self.import_button.pack(side=tk.LEFT)
+
+		self.export_button = tk.Button(
+			self.buttons_frame, 
+			text="Export (.txt)", 
+			command=SetParsing.export_deck
+		)
+		self.export_button.pack(side=tk.LEFT)
 
 		self.sort_options_title_label = tk.Label(
 			self.centered_frame, 
@@ -96,25 +105,3 @@ class SidebarFrame(tk.Frame):
 		block_order = self.block_order_string_var.get()
 
 		CardCatManager._update_class_vars(primary_only, cat_order, block_order)
-
-	def import_deck(self):
-		decklist_file_path = askopenfilename()
-		extension = decklist_file_path[-3:]
-
-		successfully_processed = False
-		match extension:
-			case 'txt':
-				#self.read_txt_decklist(decklist_file_path)
-				successfully_processed = True
-			case _:
-				UpdateLabel.report(".txt only plz xc")
-				return
-
-		if successfully_processed:
-			UpdateLabel.report(f"Successfully processed {decklist_file_path} cx")
-
-		CardCatManager.decklist_file_path = decklist_file_path
-		SetParsing.read_txt_deck(decklist_file_path)
-
-
-

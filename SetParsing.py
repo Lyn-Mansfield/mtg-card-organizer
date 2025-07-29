@@ -5,10 +5,14 @@ import time
 import random
 import string
 
+from tkinter import filedialog
+from pathlib import Path
+
 import regex as re
 import pandas as pd
 import numpy as np
 from CardCatManager import CardCatManager
+from UpdateLabel import UpdateLabel
 
 # Captures 1. the count of a card, 2. the name, 3. the set number, and 4. the categories, if given
 card_line_regex = r"^(\d+)x? ([\w\s,'-/]+) \(([[a-zA-Z0-9]+)\) ?(\[.+\])?"
@@ -146,7 +150,7 @@ def process_raw_card_series(card_series, main_cat, count=1, all_cats=None):
 
 	# Handle double-sided cards and dual cards (i.e. rooms)
 	# Stores each side's info as DataFrames
-	if card_series['card_faces'] is not np.nan:
+	if 'card_faces' in card_series.index and card_series['card_faces'] is not np.nan:
 		card_faces_info = card_series['card_faces']
 		front_side_json, back_side_json = card_faces_info[0], card_faces_info[1]
 		card_series['first_card_info'] = pd.json_normalize(front_side_json)
@@ -186,3 +190,44 @@ def read_txt_deck(txt_file_link):
 			previous_line = line
 
 	process_card_info_list(card_info_list)
+
+
+def import_deck():
+	decklist_file_path = filedialog.askopenfilename()
+	extension = decklist_file_path[-3:]
+
+	successfully_processed = False
+	match extension:
+		case 'txt':
+			successfully_processed = True
+		case _:
+			UpdateLabel.report(".txt only plz xc")
+			return
+
+	if successfully_processed:
+		UpdateLabel.report(f"Successfully processed {decklist_file_path} cx")
+
+	CardCatManager.decklist_file_path = decklist_file_path
+	read_txt_deck(decklist_file_path)
+
+
+def export_deck():
+	file_path = filedialog.asksaveasfilename(
+		defaultextension=".txt",
+		filetypes=[("Text files", "*.txt"), ("All files", "*.*")],
+		title="Save as Text File"
+	)
+
+	# If no file path chosen, then do nothing
+	if not file_path:
+		return
+
+	card_rows_str_series = CardCatManager.cards_df.apply(lambda row: f"{row['count']}x {row['name']} ({row['set']}) [{', '.join(row['all_categories'])}]", axis=1)
+	card_rows_full_str = '\n'.join(card_rows_str_series)
+
+	file_path = Path(file_path).with_suffix('.txt')
+	try:
+		file_path.write_text(card_rows_full_str, encoding='utf-8')
+		print(f"Successfully saved to {file_path}")
+	except Exception as e:
+		print(f"Error saving file: {e}")

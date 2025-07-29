@@ -196,7 +196,7 @@ class CategoryBlock(tk.Frame):
             return
         # If we're only displaying in primary category, then just show the names and counts normally
         if CardCatManager.primary_only:
-            card_rows_to_show = self.local_cards_df.query("main_category == @self.name")
+            card_rows_to_show = self.local_cards_df[self.local_cards_df['main_category'] == self.name]
         # Otherwise, show all cards as normal
         else:
             card_rows_to_show = self.local_cards_df

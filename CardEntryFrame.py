@@ -54,6 +54,8 @@ class CardEntryFrame(tk.Frame):
 			self.add_cat_frame, text="Add", command=self.add_new_item
 		)
 		self.add_button.pack(side=tk.LEFT)
+
+		self.reorganize_cat_blocks()
 #----------------------------------------------------------------------------------------------------#
 	def _validate_one_char(self, P):
 		if len(P) <= 1:
@@ -134,7 +136,7 @@ class CardEntryFrame(tk.Frame):
 
 		if CardCatManager.contains_keybind(keybind):
 			UpdateLabel.report(f"'{keybind}' already being used :c")
-			return
+			return 
 		
 		CardCatManager.add_category(keybind, name)
 #----------------------------------------------------------------------------------------------------#
@@ -153,7 +155,7 @@ class CardEntryFrame(tk.Frame):
 			)
 		
 		# Set target_category to first category if not set to anything 
-		if not self.target_category.get():
+		if self.get_curr_category() not in category_names_list:
 			self.target_category.set(category_names_list[0])
 
 

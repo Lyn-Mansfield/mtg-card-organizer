@@ -60,16 +60,17 @@ def _find_suitable_keybind(cat_name):
 		return random_char
 
 	first_char = cat_name[0]
+	# If it's not a letter, then skip to the next character
 	if not first_char.isalpha():
 		return _find_suitable_keybind(cat_name[1:])
-	if not CardCatManager.contains_keybind(first_char):
-		return first_char
-	upper_first_char = first_char.upper()
-	if not CardCatManager.contains_keybind(upper_first_char):
-		return upper_first_char
+	# Try lowercase lettering, then uppercase
 	lower_first_char = first_char.lower()
 	if not CardCatManager.contains_keybind(lower_first_char):
 		return lower_first_char
+	upper_first_char = first_char.upper()
+	if not CardCatManager.contains_keybind(upper_first_char):
+		return upper_first_char
+	# If neither works, try again with the next character
 	return _find_suitable_keybind(cat_name[1:])
 
 
@@ -137,17 +138,19 @@ def process_raw_card_series(card_series, main_cat, count=1, all_cats=None):
 	else:
 		card_series['all_categories'] = [main_cat]
 
-	# Handle double-sided cards
-	# Stores side info as DataFrames
-	if 'card_faces' in card_series.index and card_series['card_faces'] is not np.nan:
+	# Dual cards can't flip, but double-sided cards can
+	if 'image_uris.png' in card_series.index:
+		card_series['flips'] = False
+	else:
 		card_series['flips'] = True
+
+	# Handle double-sided cards and dual cards (i.e. rooms)
+	# Stores each side's info as DataFrames
+	if card_series['card_faces'] is not np.nan:
 		card_faces_info = card_series['card_faces']
 		front_side_json, back_side_json = card_faces_info[0], card_faces_info[1]
-		card_series['front_side_info'] = pd.json_normalize(front_side_json)
-		card_series['back_side_info'] = pd.json_normalize(back_side_json)
-		# target_card_row['front_info'] = 
-	else:
-		card_series['flips'] = False
+		card_series['first_card_info'] = pd.json_normalize(front_side_json)
+		card_series['second_card_info'] = pd.json_normalize(back_side_json)
 
 	# Turn into a one-row DataFrame 
 	return card_series.to_frame().T

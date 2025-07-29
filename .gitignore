@@ -1,4 +1,6 @@
 save_info/
+__pycache__/
+
 tkinter_test.py
 test.py
 .DS_STORE

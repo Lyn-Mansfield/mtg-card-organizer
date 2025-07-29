@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox
 import pandas as pd
+import numpy as np
 import time
 from UpdateLabel import UpdateLabel
 
@@ -13,10 +14,12 @@ class CardCatManager:
 	card_entry_frame = None
 	block_frame = None
 
-	# Actual defaults live in SidebarFrame
-	primary_only = None
-	cat_order = None
-	block_order = None
+	# Defaults for the Sidebar options, but get overridden by saved settings if applicable
+	primary_only = False
+	cat_sort = 'Date Added'
+	block_sort = 'Alphabetical'
+
+	decklist_file_path = None
 #----------------------------------------------------------------------------------------------------#
 	# Update card DB when SidebarFrame variables change, and then reload the block frame to reflect changes
 	@classmethod
@@ -108,7 +111,7 @@ class CardCatManager:
 		cls.reorganize_cat_blocks()
 
 		# Update category sizes
-		cls.categories_df['size'] = cls.categories_df['cat_block'].apply(lambda cat_block: 0 if cat_block is None else cat_block.size())
+		cls.categories_df['size'] = cls.categories_df['cat_block'].apply(lambda cat_block: 0 if type(cat_block) == float else cat_block.size())
 
 		# Highlight card, if specified
 		if focus_card is None or focus_cat_name is None:
@@ -240,7 +243,7 @@ class CardCatManager:
 			'name': [category_name],
 			'date_added': [time.time()], 
 			'size': [0],
-			'cat_block': [None]
+			'cat_block': [np.nan]
 		})
 
 		print(f"Adding category {category_name} ({keybind})")
@@ -281,6 +284,7 @@ class CardCatManager:
 		for cat_block in cls.cat_blocks:
 			cat_block.destroy()
 		cls.cat_blocks = []
+		cls.categories_df['cat_block'] = np.nan
 #----------------------------------------------------------------------------------------------------#
 	@classmethod
 	def update_keybind(cls, new_keybind, cat_block):

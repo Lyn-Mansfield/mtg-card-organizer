@@ -1,13 +1,16 @@
 import numpy as np
 import pandas as pd
 import tkinter as tk
+from tkinter import messagebox
 from tkinter import ttk
+
 from CardEntryFrame import CardEntryFrame
 from CategoryBlockFrame import CategoryBlockFrame
 from SidebarFrame import SidebarFrame
 from UpdateLabel import UpdateLabel
 from CardCatManager import CardCatManager
 from CardDisplayFrame import CardDisplayFrame
+import SavePickler
 
 class MultiColumnListboxApp:
 	def __init__(self, root):
@@ -15,6 +18,11 @@ class MultiColumnListboxApp:
 		self.root = root
 		self.root.geometry("1080x800")
 		self.root.title("MTG Deck Column Organizer")
+		self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
+
+		# Load any saved info from previous sessions
+		SavePickler.load_user_settings()
+		SavePickler.load_db_info()
 
 		self.side_frame = tk.Frame(root) # , highlightbackground='yellow', highlightthickness=1
 		self.side_frame.pack(side=tk.LEFT, padx=10, pady=10, fill=tk.Y)
@@ -55,10 +63,13 @@ class MultiColumnListboxApp:
 		)
 		self.block_frame.pack(padx=10, pady=(0, 10), expand=True, fill=tk.BOTH)
 
-		# Add default categories
-		self._add_default_categories()
+		# Add default categories if no categories already loaded
+		if CardCatManager.categories_df.shape[0] == 0:
+			self._add_default_categories()
 		# Scrub update label after
 		UpdateLabel.clear()
+
+		print(CardCatManager.primary_only, CardCatManager.cat_order, CardCatManager.block_order)
 #----------------------------------------------------------------------------------------------------#
 	def _add_default_categories(self):
 		# Initial setup
@@ -73,6 +84,15 @@ class MultiColumnListboxApp:
 		}
 		for (keybind, name) in default_categories.items():
 			CardCatManager.add_category(keybind, name)
+#----------------------------------------------------------------------------------------------------#	
+	def on_closing(self):
+		if messagebox.askokcancel("Quit", "Progress will be saved automatically."):
+			# Destroy all blocks, since pickle can't save the tkinter blocks in categories df
+			CardCatManager.destroy_all_blocks()
+
+			SavePickler.save_user_settings() 
+			SavePickler.save_db_info()
+			self.root.destroy()
 
 
 root = tk.Tk()

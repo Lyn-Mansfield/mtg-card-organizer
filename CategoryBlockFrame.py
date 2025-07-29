@@ -71,7 +71,7 @@ class CategoryBlockFrame(tk.Frame):
         self.reorganize_cat_blocks()
 #----------------------------------------------------------------------------------------------------#
     def reorganize_cat_blocks(self):
-        print("reordering cat blocks...")
+        # print("reordering cat blocks...")
         # Destroy all previously constructed cat blocks
         CardCatManager.destroy_all_blocks()
 

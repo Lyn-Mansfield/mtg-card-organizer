@@ -13,7 +13,7 @@ import pandas as pd
 import numpy as np
 from CardCatManager import CardCatManager
 from UpdateLabel import UpdateLabel
-
+#----------------------------------------------------------------------------------------------------#
 # Captures 1. the count of a card, 2. the name, 3. the set number, and 4. the categories, if given
 card_line_regex = r"^(\d+)x? ([\w\s,'-/]+) \(([[a-zA-Z0-9]+)\) ?(\[.+\])?"
 def create_card_row(line, main_cat):
@@ -40,7 +40,7 @@ def create_card_row(line, main_cat):
 		'main_category': [main_cat],
 		'all_categories': [categories_list]
 	})
-
+#----------------------------------------------------------------------------------------------------#
 def _generate_post_request(df):
 	
 	def make_row_json(row):
@@ -54,7 +54,7 @@ def _generate_post_request(df):
 	full_json_str = f'{{"identifiers": [\n	{card_json_str}\n]}}'
 
 	return json.loads(full_json_str)
-
+#----------------------------------------------------------------------------------------------------#	
 def _find_suitable_keybind(cat_name):
 	# If no suitable keybind is found, just find a random one
 	if len(cat_name) == 0:
@@ -76,8 +76,7 @@ def _find_suitable_keybind(cat_name):
 		return upper_first_char
 	# If neither works, try again with the next character
 	return _find_suitable_keybind(cat_name[1:])
-
-
+#----------------------------------------------------------------------------------------------------#	
 MAX_POST_REQUEST_SIZE = 50
 def process_card_info_list(card_info_list):
 	raw_cards_data_df = pd.DataFrame()
@@ -112,7 +111,6 @@ def process_card_info_list(card_info_list):
 	# Insert all the cards
 	for processed_card_row in processed_card_rows_list:
 		CardCatManager.add_card(processed_card_row)
-
 #----------------------------------------------------------------------------------------------------#
 # Returns a cleaned DataFrame row of processed card info
 def process_raw_card_series(card_series, main_cat, count=1, all_cats=None):
@@ -158,7 +156,7 @@ def process_raw_card_series(card_series, main_cat, count=1, all_cats=None):
 
 	# Turn into a one-row DataFrame 
 	return card_series.to_frame().T
-
+#----------------------------------------------------------------------------------------------------#	
 def read_txt_deck(txt_file_link):
 	card_info_list = pd.DataFrame()
 
@@ -190,8 +188,7 @@ def read_txt_deck(txt_file_link):
 			previous_line = line
 
 	process_card_info_list(card_info_list)
-
-
+#----------------------------------------------------------------------------------------------------#	
 def import_deck():
 	decklist_file_path = filedialog.askopenfilename()
 	extension = decklist_file_path[-3:]
@@ -209,8 +206,7 @@ def import_deck():
 
 	CardCatManager.decklist_file_path = decklist_file_path
 	read_txt_deck(decklist_file_path)
-
-
+#----------------------------------------------------------------------------------------------------#	
 def export_deck():
 	file_path = filedialog.asksaveasfilename(
 		defaultextension=".txt",

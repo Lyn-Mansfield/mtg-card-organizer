@@ -96,7 +96,7 @@ class SidebarFrame(tk.Frame):
 			command=lambda: print([cat_block.name for cat_block in CardCatManager.cat_blocks])
 		)
 		self.test_button.pack()
-
+#----------------------------------------------------------------------------------------------------#	
 	# Update card DB when variables change
 	# Random trace_add info gets passed in, too, but we can ignore all that
 	def _update_class_vars(self, *args):

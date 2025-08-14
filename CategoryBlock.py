@@ -1,9 +1,12 @@
 import tkinter as tk
+from tkinter.font import Font 
 import pandas as pd
 import numpy as np
 import requests
+
 from tkinter import messagebox
 from tkinter import simpledialog
+
 from UpdateLabel import UpdateLabel
 from CardCatManager import CardCatManager
 from CardDisplayFrame import CardDisplayFrame
@@ -62,7 +65,8 @@ class CategoryBlock(tk.Frame):
             height=self.min_height
         )
         self.listbox.pack(side=tk.TOP, expand=True, fill=tk.X)
-        self.listbox.config(selectmode=tk.SINGLE)
+        prettier_font = Font(family="Book Antiqua", size=12, weight="bold")
+        self.listbox.config(selectmode=tk.SINGLE, font=prettier_font)
 
         # Bind transfer command
         self.listbox.bind('<Button-1>', lambda event: self._on_click(event))
@@ -89,6 +93,9 @@ class CategoryBlock(tk.Frame):
         print('displaying a new card!')
         CardDisplayFrame.display_new_image(selected_row)
         print('finished displaying')
+
+        CardCatManager.focus_card = selected_row.name
+        CardCatManager.focus_cat_name = self.name
 #----------------------------------------------------------------------------------------------------#
     # Handles the different keystroke events we have defined, including card transfer
     def _on_keystroke(self, event):

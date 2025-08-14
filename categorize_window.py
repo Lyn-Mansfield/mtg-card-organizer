@@ -20,27 +20,25 @@ class MultiColumnListboxApp:
 		self.root.title("MTG Deck Column Organizer")
 		self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
 
-		"""
 		self.notebook = ttk.Notebook(root)
 		self.notebook.pack()
 		def _conf(event):
 			self.notebook.config(height=self.root.winfo_height(), width=self.root.winfo_width())
 		self.root.bind("<Configure>", _conf)
 
-		self.tab_1 = ttk.Frame(self.notebook)
-		self.notebook.add(self.tab_1, text='Card Categories Organizer')
+		self.cards_tab = ttk.Frame(self.notebook)
+		self.notebook.add(self.cards_tab, text='Card Categories Organizer')
 
-		self.tab_2 = ttk.Frame(self.notebook)
-		self.notebook.add(self.tab_2, text='Statistics')
-		self.tab_2_label = ttk.Label(self.tab_2, text='Welcome to Tab 2! :D')
-		self.tab_2_label.pack()
-		"""
+		self.stats_tab = ttk.Frame(self.notebook)
+		self.notebook.add(self.stats_tab, text='Statistics')
+		self.stats_tab_label = ttk.Label(self.stats_tab, text='Welcome to Tab 2! :D')
+		self.stats_tab_label.pack()
 
 		# Load any saved info from previous sessions
 		SavePickler.load_user_settings()
 		SavePickler.load_db_info()
 		
-		self.side_frame = tk.Frame(self.root) # , highlightbackground='yellow', highlightthickness=1
+		self.side_frame = tk.Frame(self.cards_tab) # , highlightbackground='yellow', highlightthickness=1
 		self.side_frame.pack(side=tk.LEFT, padx=10, pady=10, fill=tk.Y)
 
 		# Card display frame
@@ -52,7 +50,7 @@ class MultiColumnListboxApp:
 		self.sidebar_frame.pack(side=tk.TOP, padx=10, pady=10, fill=tk.Y)
 
 		# Body frame
-		self.body_frame = tk.Frame(self.root, highlightbackground='red', highlightthickness=4)
+		self.body_frame = tk.Frame(self.cards_tab, highlightbackground='red', highlightthickness=4)
 		self.body_frame.pack(side=tk.LEFT, padx=10, pady=10, expand=True, fill=tk.BOTH)
 
 		# Header frame

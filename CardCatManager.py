@@ -14,6 +14,9 @@ class CardCatManager:
 	card_entry_frame = None
 	block_frame = None
 
+	focus_card = None
+	focus_cat_name = None
+
 	# Defaults for the Sidebar options, but get overridden by saved settings if applicable
 	primary_only = False
 	cat_sort = 'Date Added'
@@ -91,7 +94,7 @@ class CardCatManager:
 #----------------------------------------------------------------------------------------------------#
 	# Reorganizes by size of the 
 	@classmethod
-	def _update_block_frames(cls, focus_card=None, focus_cat_name=None):
+	def _update_block_frames(cls):
 		if cls.categories_df.shape[0] == 0:
 			cls.reorganize_cat_blocks()
 			return
@@ -114,12 +117,12 @@ class CardCatManager:
 		cls.categories_df['size'] = cls.categories_df['cat_block'].apply(lambda cat_block: 0 if type(cat_block) == float else cat_block.size())
 
 		# Highlight card, if specified
-		if focus_card is None or focus_cat_name is None:
+		if cls.focus_card is None or cls.focus_cat_name is None:
 			return
 
 		categories_indexed_by_name = cls.categories_df.set_index('name')
-		focus_cat_block = categories_indexed_by_name.loc[focus_cat_name, 'cat_block']
-		focus_cat_block.focus(focus_card)
+		focus_cat_block = categories_indexed_by_name.loc[cls.focus_cat_name, 'cat_block']
+		focus_cat_block.focus(cls.focus_card)
 
 	# WIP
 	@classmethod
@@ -158,7 +161,10 @@ class CardCatManager:
 		cls.cards_df.loc[card_name, 'count'] += difference
 		if cls.cards_df.loc[card_name, 'count']  <= 0:
 			raise ValueError("Trying to remove more cards than there are, should be deleted instead!")
-		cls._update_block_frames(focus_card=card_name, focus_cat_name=cat_name)
+
+		cls.focus_card = card_name
+		cls.focus_cat_name = cat_name
+		cls._update_block_frames()
 #----------------------------------------------------------------------------------------------------#
 	@classmethod
 	def remove_card_from_cat(cls, cat_block, card_name):
@@ -183,6 +189,8 @@ class CardCatManager:
 
 		cls.cards_df.drop(card_name, inplace=True)
 		UpdateLabel.report(f"Deleted {card_name} from the whole deck")
+
+		cls.focus_card= None
 		cls._update_block_frames()
 #----------------------------------------------------------------------------------------------------#
 	@classmethod
@@ -229,7 +237,8 @@ class CardCatManager:
 		else:
 			cls.cards_df.loc[selected_card_name, 'all_categories'].append(new_sub_cat_name)
 			UpdateLabel.report(f"{selected_card_name} added to {new_sub_cat_name} as a secondary category c:")
-		cls._update_block_frames(focus_card=selected_card_name, focus_cat_name=cat_block.name)
+		
+		cls._update_block_frames()
 #----------------------------------------------------------------------------------------------------#
 	# Adds a category to the db, linking it to its keybind and name for easy searching
 	@classmethod
@@ -260,6 +269,9 @@ class CardCatManager:
 		for card_name in cat_block_to_delete.local_cards_df.index:
 			cls.remove_card_from_cat(cat_block_to_delete, card_name)
 
+		if cls.focus_cat_name == cat_block_to_delete.name:
+			cls.focus_card = None
+			cls.focus_cat_name = None
 		cls._update_block_frames()
 #----------------------------------------------------------------------------------------------------#
 	# Removes all categories and cards, usually in preparation for importing a decklist
@@ -276,6 +288,8 @@ class CardCatManager:
 			cls.categories_df = pd.DataFrame()
 			cls.destroy_all_blocks()
 
+		cls.focus_card = None
+		cls.focus_cat_name = None
 		cls._update_block_frames()
 		return user_accepts
 #----------------------------------------------------------------------------------------------------#
@@ -304,4 +318,6 @@ class CardCatManager:
 		
 		cls.categories_df.loc[cls.categories_df['name'] == old_name, 'name'] = new_name
 
+		if cls.focus_cat_name == old_name:
+			cls.focus_cat_name = new_name
 		cls._update_block_frames()

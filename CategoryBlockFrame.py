@@ -137,5 +137,5 @@ class CategoryBlockFrame(tk.Frame):
         self.categories_canvas.itemconfigure("inner_frame", width=new_inner_width)
         
         # Have category blocks fill in the new space
-        self.reorganize_cat_blocks()
+        CardCatManager._update_block_frames()
 

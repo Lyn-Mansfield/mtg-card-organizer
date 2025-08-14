@@ -32,6 +32,10 @@ def create_card_row(line, main_cat):
 	count, name, set_code = card_regex[1], card_regex[2], card_regex[3]
 	if main_cat is None and len(categories_list) > 0:
 		main_cat = categories_list[0]
+	# If no categories are given, put in Unsorted
+	if main_cat is None and len(categories_list) == 0:
+		main_cat = "Unsorted"
+		categories_list = [main_cat]
 
 	return pd.DataFrame({
 		'name': [name],
@@ -151,8 +155,10 @@ def process_raw_card_series(card_series, main_cat, count=1, all_cats=None):
 	if 'card_faces' in card_series.index and card_series['card_faces'] is not np.nan:
 		card_faces_info = card_series['card_faces']
 		front_side_json, back_side_json = card_faces_info[0], card_faces_info[1]
-		card_series['first_card_info'] = pd.json_normalize(front_side_json)
-		card_series['second_card_info'] = pd.json_normalize(back_side_json)
+		# Using .iloc[0] so they are stored as Series, 
+		# i.e. don't have to be turned into Series later down the line
+		card_series['first_card_info'] = pd.json_normalize(front_side_json).iloc[0]
+		card_series['second_card_info'] = pd.json_normalize(back_side_json).iloc[0]
 
 	# Turn into a one-row DataFrame 
 	return card_series.to_frame().T

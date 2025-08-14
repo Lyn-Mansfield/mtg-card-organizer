@@ -86,7 +86,9 @@ class CategoryBlock(tk.Frame):
         if self.listbox is not self.root.focus_get():
             return
         selected_row = self.selected_row()
+        print('displaying a new card!')
         CardDisplayFrame.display_new_image(selected_row)
+        print('finished displaying')
 #----------------------------------------------------------------------------------------------------#
     # Handles the different keystroke events we have defined, including card transfer
     def _on_keystroke(self, event):
@@ -235,13 +237,13 @@ class CategoryBlock(tk.Frame):
 #----------------------------------------------------------------------------------------------------#
     def goto(self, index):
         self.listbox.focus_set()
+        self.listbox.selection_clear(0, tk.END)
         self.listbox.selection_set(index)
+        self.listbox.activate(index)
 #----------------------------------------------------------------------------------------------------#
     def focus(self, card_name):
-        self.listbox.focus_set()
-
         card_index = self.local_cards_df.index.get_loc(card_name)
-        self.listbox.selection_set(card_index)
+        self.goto(card_index)
 #----------------------------------------------------------------------------------------------------#
     def _update_count(self, difference):
         print(f"updating by {difference}")

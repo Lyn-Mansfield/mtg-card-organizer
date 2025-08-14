@@ -145,7 +145,7 @@ def process_raw_card_series(card_series, main_cat, count=1, all_cats=None):
 		card_series['all_categories'] = [main_cat]
 
 	# Dual cards can't flip, but double-sided cards can
-	if 'image_uris.png' in card_series.index:
+	if 'image_uris.png' in card_series.index and card_series['image_uris.png'] is not np.nan:
 		card_series['flips'] = False
 	else:
 		card_series['flips'] = True
@@ -160,7 +160,7 @@ def process_raw_card_series(card_series, main_cat, count=1, all_cats=None):
 		card_series['first_card_info'] = pd.json_normalize(front_side_json).iloc[0]
 		card_series['second_card_info'] = pd.json_normalize(back_side_json).iloc[0]
 
-	# Turn into a one-row DataFrame 
+	# Return as a one-row DataFrame 
 	return card_series.to_frame().T
 #----------------------------------------------------------------------------------------------------#	
 def read_txt_deck(txt_file_link):

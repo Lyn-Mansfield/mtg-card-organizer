@@ -72,17 +72,17 @@ class CardDisplayFrame(tk.Frame):
 
 		# If it's a double-sided card, find front-side info and activate flip button 
 		if cls.image_info_series['flips'] == True:
+			print("oh yeah, this card flips")
 			cls.current_side = 'Front'
-			front_side_info_df = cls.image_info_series['first_card_info']
-			image_link = front_side_info_df['image_uris.png'].item()
+			front_side_info_series = cls.image_info_series['first_card_info']
+			image_link = front_side_info_series['image_uris.png']
 		# Otherwise, image link is stored normally
 		else:
+			print("this card doesn't flip")
 			cls.current_side = 'N/A'
 			image_link = cls.image_info_series['image_uris.png']
 
-		print('getting image!')
-		print(card_row_series['first_card_info'])
-		print(image_link)
+		print('getting image!', image_link)
 		cls.image = cls._get_image(image_link)
 		print('broadcasting!')
 		cls._broadcast()
@@ -96,11 +96,11 @@ class CardDisplayFrame(tk.Frame):
 			case 'Front':
 				cls.current_side = 'Back'
 				back_side_info_df = cls.image_info_series['second_card_info']
-				image_link = back_side_info_df['image_uris.png'].item()
+				image_link = back_side_info_df['image_uris.png']
 			case 'Back':
 				cls.current_side = 'Front'
 				front_side_info_df = cls.image_info_series['first_card_info']
-				image_link = front_side_info_df['image_uris.png'].item()
+				image_link = front_side_info_df['image_uris.png']
 
 		cls.image = cls._get_image(image_link)
 		cls._broadcast()

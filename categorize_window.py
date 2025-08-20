@@ -4,6 +4,11 @@ import tkinter as tk
 from tkinter import messagebox
 from tkinter import ttk
 
+import matplotlib
+matplotlib.use('TkAgg')
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import matplotlib.pyplot as plt
+
 from CardEntryFrame import CardEntryFrame
 from CategoryBlockFrame import CategoryBlockFrame
 from SidebarFrame import SidebarFrame
@@ -11,6 +16,7 @@ from UpdateLabel import UpdateLabel
 from CardCatManager import CardCatManager
 from CardDisplayFrame import CardDisplayFrame
 import SavePickler
+import StatsManager
 
 class MultiColumnListboxApp:
 	def __init__(self, root):
@@ -28,11 +34,6 @@ class MultiColumnListboxApp:
 
 		self.cards_tab = ttk.Frame(self.notebook)
 		self.notebook.add(self.cards_tab, text='Card Categories Organizer')
-
-		self.stats_tab = ttk.Frame(self.notebook)
-		self.notebook.add(self.stats_tab, text='Statistics')
-		self.stats_tab_label = ttk.Label(self.stats_tab, text='Welcome to Tab 2! :D')
-		self.stats_tab_label.pack()
 
 		# Load any saved info from previous sessions
 		SavePickler.load_user_settings()
@@ -82,6 +83,29 @@ class MultiColumnListboxApp:
 			self._add_default_categories()
 		# Scrub update label after
 		UpdateLabel.clear()
+
+
+		self.stats_tab = ttk.Frame(self.notebook)
+		self.notebook.add(self.stats_tab, text='Statistics')
+
+		other_graph = plt.figure(0, figsize=(2,1))
+		t = np.arange(0.0,3.0,0.01)
+		s = np.cos(np.pi*t)
+		plt.plot(t,s)
+		mana_graph_fig = StatsManager.generate_mana_graph()
+
+		other_graph_canvas = FigureCanvasTkAgg(other_graph, master=self.stats_tab)
+		other_graph_widget = other_graph_canvas.get_tk_widget()
+
+		mana_graph_canvas = FigureCanvasTkAgg(mana_graph_fig, master=self.stats_tab)
+		mana_graph_widget = mana_graph_canvas.get_tk_widget()
+
+		other_graph_widget.pack()
+		mana_graph_widget.pack()
+		# tk.Button(root,text="Update",command=update).grid(row=1, column=0)
+
+		self.stats_tab_label = ttk.Label(self.stats_tab, text='Welcome to Tab 2! :D')
+		self.stats_tab_label.pack()
 
 		# Fixes tabs not loading when switching between them
 		def _update_new_tab(event):

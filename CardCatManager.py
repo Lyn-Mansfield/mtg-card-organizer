@@ -9,6 +9,7 @@ class CardCatManager:
 	# Card name set as index
 	cards_df = pd.DataFrame()
 	categories_df = pd.DataFrame()
+	cat_block_fill_dict = {}
 
 	cat_blocks = []
 	card_entry_frame = None
@@ -62,7 +63,10 @@ class CardCatManager:
 		# If no cards have been added, return an empty DataFrame
 		if cls.cards_df.shape[0] == 0:
 			return pd.DataFrame()
-		relevant_card_rows = cls.cards_df[cls.cards_df['all_categories'].apply(lambda x: category_name in x)]
+		try:
+			relevant_card_rows = cls.cat_block_fill_dict[category_name]
+		except KeyError:
+			return pd.DataFrame()
 
 		match cls.block_order:
 			case 'Alphabetical':
@@ -98,6 +102,9 @@ class CardCatManager:
 		if cls.categories_df.shape[0] == 0:
 			cls.reorganize_cat_blocks()
 			return
+
+		if cls.cards_df.shape[0] > 0 and len(cls.cat_block_fill_dict) == 0:
+			cls._update_cat_block_fill_dict()
 
 		match cls.cat_order:
 			case 'Date Added':
@@ -146,12 +153,21 @@ class CardCatManager:
 		return row_list
 #----------------------------------------------------------------------------------------------------#
 	@classmethod
+	def _update_cat_block_fill_dict(cls):
+		cards_copy_df = cls.cards_df.copy()
+		cards_copy_df['all_categories_explodable'] = cards_copy_df['all_categories'].copy()
+		exploded_df = cards_copy_df.explode('all_categories_explodable')
+		cls.cat_block_fill_dict = {cat:df for cat, df in exploded_df.groupby('all_categories_explodable')}
+		#print(cls.cat_block_fill_dict)
+#----------------------------------------------------------------------------------------------------#
+	@classmethod
 	def add_card(cls, new_card_row):
 		if type(new_card_row) != pd.DataFrame:
 			raise TypeError("Rows to be added must be DataFrame")
 		# Rows will come in with the name set as index
 		cls.cards_df = pd.concat([cls.cards_df, new_card_row])
 		
+		cls._update_cat_block_fill_dict()
 		cls._update_block_frames()
 #----------------------------------------------------------------------------------------------------#
 	# Updates the count of a card, only meant to handle when a card's count doesn't go below 0
@@ -159,11 +175,16 @@ class CardCatManager:
 	@classmethod
 	def _update_count(cls, card_name, difference, cat_name):
 		cls.cards_df.loc[card_name, 'count'] += difference
-		if cls.cards_df.loc[card_name, 'count']  <= 0:
-			raise ValueError("Trying to remove more cards than there are, should be deleted instead!")
+
+		new_count = cls.cards_df.loc[card_name, 'count']
+		# If we remove more cards than there are, then remove that card everywhere
+		if new_count <= 0:
+			CardCatManager.delete_card(card_name)
+			return
 
 		cls.focus_card = card_name
 		cls.focus_cat_name = cat_name
+		cls._update_cat_block_fill_dict()
 		cls._update_block_frames()
 #----------------------------------------------------------------------------------------------------#
 	@classmethod
@@ -180,6 +201,7 @@ class CardCatManager:
 		if has_no_remaining_categories or removed_from_main_category:
 			cls.delete_card(card_name)
 
+		cls._update_cat_block_fill_dict()
 		cls._update_block_frames()
 #----------------------------------------------------------------------------------------------------#
 	@classmethod
@@ -191,6 +213,7 @@ class CardCatManager:
 		UpdateLabel.report(f"Deleted {card_name} from the whole deck")
 
 		cls.focus_card = None
+		cls._update_cat_block_fill_dict()
 		cls._update_block_frames()
 #----------------------------------------------------------------------------------------------------#
 	@classmethod
@@ -216,6 +239,7 @@ class CardCatManager:
 		
 		cls.focus_card = selected_card_name
 		cls.focus_cat_name = new_main_cat_name
+		cls._update_cat_block_fill_dict()
 		cls._update_block_frames()
 #----------------------------------------------------------------------------------------------------#
 	@classmethod
@@ -289,6 +313,7 @@ class CardCatManager:
 		if user_accepts:
 			cls.cards_df = pd.DataFrame()
 			cls.categories_df = pd.DataFrame()
+			cls.cat_block_fill_dict = {}
 			cls.destroy_all_blocks()
 
 		cls.focus_card = None

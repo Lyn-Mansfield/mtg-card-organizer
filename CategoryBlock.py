@@ -186,7 +186,7 @@ class CategoryBlock(tk.Frame):
         if self.local_cards_df.shape[0] == 0:
             return 0
         return self.local_cards_df['count'].sum()
-
+#----------------------------------------------------------------------------------------------------#
     def _row_name_template(self, card_row):
         is_primary = card_row['main_category'] == self.name
         primary_is_relevant = len(card_row['all_categories']) > 1
@@ -260,13 +260,7 @@ class CategoryBlock(tk.Frame):
         target_idx = self.selected_index()
         target_card_name = self.local_cards_df.index[target_idx]
 
-        new_count = self.local_cards_df.loc[target_card_name, 'count'] + difference
-        # If we remove more cards than there are, then remove that card everywhere
-        if new_count <= 0:
-            CardCatManager.delete_card(target_card_name)
-        # Otherwise, just need to update its count
-        else:
-            CardCatManager._update_count(target_card_name, difference, self.name)
+        CardCatManager._update_count(target_card_name, difference, self.name)
 #----------------------------------------------------------------------------------------------------#
     def add(self):
         self._update_count(1)

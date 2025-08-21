@@ -71,7 +71,8 @@ class CardDisplayFrame(tk.Frame):
 			return
 
 		# If it's a double-sided card, find front-side info and activate flip button 
-		if cls.image_info_series['flips'] == True:
+		print(cls.image_info_series['name'], cls.image_info_series['flips'])
+		if cls.image_info_series['flips']:
 			print("oh yeah, this card flips")
 			cls.current_side = 'Front'
 			front_side_info_series = cls.image_info_series['first_card_info']

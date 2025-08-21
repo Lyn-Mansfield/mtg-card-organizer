@@ -102,9 +102,10 @@ class CategoryBlock(tk.Frame):
         """Handle key presses for moving cards from category to category"""
         print('generic keystroke detected...')
         print(event.keysym)
-        ctrl_state_code = 4
+        ctrl_state_code, ctrl_shift_state_code = 4, 5
         ctrl_being_held = event.state == ctrl_state_code
-        print(ctrl_being_held)
+        ctrl_shift_being_held = event.state == ctrl_shift_state_code
+        print(event.state, ctrl_being_held, ctrl_shift_being_held)
 
         match event.keysym:
             case "BackSpace" | "Delete":
@@ -117,9 +118,11 @@ class CategoryBlock(tk.Frame):
                 self.subtract()
             case "underscore":
                 self.subtract_5()
-            case _ if ctrl_being_held:
-                print('adding as secondary: ', event.keysym)
-                CardCatManager.toggle_secondary_category(self, event.keysym)
+            case _ if ctrl_being_held or ctrl_shift_being_held:
+                if ctrl_shift_being_held:
+                    CardCatManager.toggle_secondary_category(self, event.keysym.upper())
+                else:
+                    CardCatManager.toggle_secondary_category(self, event.keysym)
             case _:
                 CardCatManager.transfer_main_category(self, event.keysym)
 #----------------------------------------------------------------------------------------------------#

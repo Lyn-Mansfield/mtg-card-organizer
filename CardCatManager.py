@@ -190,7 +190,7 @@ class CardCatManager:
 		cls.cards_df.drop(card_name, inplace=True)
 		UpdateLabel.report(f"Deleted {card_name} from the whole deck")
 
-		cls.focus_card= None
+		cls.focus_card = None
 		cls._update_block_frames()
 #----------------------------------------------------------------------------------------------------#
 	@classmethod
@@ -213,7 +213,10 @@ class CardCatManager:
 		elif new_main_cat_name not in all_card_categories:
 			cls.cards_df.loc[selected_card_name, 'all_categories'].append(new_main_cat_name)
 			UpdateLabel.report(f"{selected_card_name}'s primary category set to {new_main_cat_name} c:")
-		cls._update_block_frames(focus_card=selected_card_name, focus_cat_name=new_main_cat_name)
+		
+		cls.focus_card = selected_card_name
+		cls.focus_cat_name = new_main_cat_name
+		cls._update_block_frames()
 #----------------------------------------------------------------------------------------------------#
 	@classmethod
 	def toggle_secondary_category(cls, cat_block, keybind):
@@ -256,14 +259,14 @@ class CardCatManager:
 		})
 
 		print(f"Adding category {category_name} ({keybind})")
-		cls.categories_df = pd.concat([cls.categories_df, new_cat_block_info_row])
+		cls.categories_df = pd.concat([cls.categories_df, new_cat_block_info_row], ignore_index=True)
 		
 		cls._update_block_frames()
 #----------------------------------------------------------------------------------------------------#
 	# Removes a category from the db, including all cards in the category
 	@classmethod
 	def delete_category(cls, cat_block_to_delete):
-		cls.categories_df.drop(cat_block_to_delete.keybind, inplace=True)
+		cls.categories_df = cls.categories_df[cls.categories_df['keybind'] != cat_block_to_delete.keybind]
 
 		# Remove this category from all cards assigned to this category
 		for card_name in cat_block_to_delete.local_cards_df.index:

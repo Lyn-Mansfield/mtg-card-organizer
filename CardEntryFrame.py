@@ -23,7 +23,9 @@ class CardEntryFrame(tk.Frame):
 		# Category Selection Menu
 		self.target_category = tk.StringVar(value="Unsorted")
 		self.category_menu = ttk.OptionMenu(
-			self, self.target_category, command=lambda _: self.card_entry.focus()
+			self, 
+			self.target_category, 
+			command=lambda _: self.card_entry.focus()
 		)
 		self.category_menu.pack(side=tk.LEFT, padx=(0, 5))
 
@@ -51,7 +53,9 @@ class CardEntryFrame(tk.Frame):
 
 		# Add button
 		self.add_button = ttk.Button(
-			self.add_cat_frame, text="Add", command=self.add_new_item
+			self.add_cat_frame, 
+			text="Add", 
+			command=self.add_custom_category
 		)
 		self.add_button.pack(side=tk.LEFT)
 
@@ -129,6 +133,7 @@ class CardEntryFrame(tk.Frame):
 #----------------------------------------------------------------------------------------------------#
 	def add_custom_category(self):
 		# Get custom category information
+		#print('adding new category!')
 		try:
 			(keybind, name) = self._output_new_cat_entries()
 		except Exception as e:

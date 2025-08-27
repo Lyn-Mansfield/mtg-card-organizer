@@ -90,6 +90,7 @@ class CategoryBlock(tk.Frame):
         if self.listbox is not self.root.focus_get():
             return
         selected_row = self.selected_row()
+        selected_name = selected_row
         print('displaying a new card!')
         CardDisplayFrame.display_new_image(selected_row)
         print('finished displaying')

@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import tkinter as tk
+import asyncio
 from tkinter import messagebox
 from tkinter import ttk
 
@@ -14,17 +15,22 @@ from CategoryBlockFrame import CategoryBlockFrame
 from SidebarFrame import SidebarFrame
 from UpdateLabel import UpdateLabel
 from CardCatManager import CardCatManager
+from CardImageManager import CardImageManager
 from CardDisplayFrame import CardDisplayFrame
 import SavePickler
 import StatsManager
 
-class MultiColumnListboxApp:
-	def __init__(self, root):
+class MTGEditor(tk.Frame):
+	def __init__(self, root, **kwargs):
 		# Root setup
+		super().__init__(root, **kwargs)
 		self.root = root
 		self.root.geometry("1080x800")
 		self.root.title("MTG Deck Column Organizer")
 		self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
+
+		# Load all saved info early, since other widgets depend on it
+		self.on_opening()
 
 		self.notebook = ttk.Notebook(root)
 		self.notebook.pack()
@@ -34,10 +40,6 @@ class MultiColumnListboxApp:
 
 		self.cards_tab = ttk.Frame(self.notebook)
 		self.notebook.add(self.cards_tab, text='Card Categories Organizer')
-
-		# Load any saved info from previous sessions
-		SavePickler.load_user_settings()
-		SavePickler.load_db_info()
 		
 		self.side_frame = tk.Frame(self.cards_tab) # , highlightbackground='yellow', highlightthickness=1
 		self.side_frame.pack(side=tk.LEFT, padx=10, pady=10, fill=tk.Y)
@@ -77,12 +79,6 @@ class MultiColumnListboxApp:
 			highlightthickness=3
 		)
 		self.block_frame.pack(padx=10, pady=(0, 10), expand=True, fill=tk.BOTH)
-
-		# Add default categories if no categories already loaded
-		if CardCatManager.categories_df.shape[0] == 0:
-			self._add_default_categories()
-		# Scrub update label after
-		UpdateLabel.clear()
 
 
 		self.stats_tab = ttk.Frame(self.notebook)
@@ -126,18 +122,37 @@ class MultiColumnListboxApp:
 		}
 		for (keybind, name) in default_categories.items():
 			CardCatManager.add_category(keybind, name)
+#----------------------------------------------------------------------------------------------------#
+	@classmethod
+	async def start_up(cls, root):
+		mtg_app = MTGEditor(root)
+		await asyncio.gather(CardImageManager.async_tk_loop(mtg_app), CardImageManager.download_all_cards())
+		return mtg_app
+#----------------------------------------------------------------------------------------------------#
+	def on_opening(self):
+		SavePickler.load_all()
+
+		# Add default categories if no categories already loaded
+		if CardCatManager.categories_df.shape[0] == 0:
+			self._add_default_categories()
+		# Scrub update label after
+		UpdateLabel.clear()
 #----------------------------------------------------------------------------------------------------#	
 	def on_closing(self):
 		if messagebox.askokcancel("Quit", "Progress will be saved automatically."):
 			# Destroy all blocks, since pickle can't save the tkinter blocks in categories df
 			CardCatManager.destroy_all_blocks()
 
-			SavePickler.save_user_settings() 
-			SavePickler.save_db_info()
+			SavePickler.save_all()
 			self.root.destroy()
 
 
-root = tk.Tk()
-app = MultiColumnListboxApp(root)
+async def main():
+	root = tk.Tk()
+	mtg_app = await MTGEditor.start_up(root)
+	root.mainloop()
 
-root.mainloop()
+asyncio.run(main())
+
+
+

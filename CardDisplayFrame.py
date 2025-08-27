@@ -1,17 +1,15 @@
 import tkinter as tk
 from PIL import Image
-from PIL import ImageTk
 import requests
 from io import BytesIO
+from CardImageManager import CardImageManager
 
 
 class CardDisplayFrame(tk.Frame):
+	current_card = None
 	image = None
-	image_info_series = None
 	current_side = 'N/A'
 	instances = []
-	# Full-size scale is 750 x 1050, this is half that
-	ideal_viewing_size = (375, 525)
 
 	def __init__(self, root, **kwargs):
 		super().__init__(root, **kwargs)
@@ -20,24 +18,27 @@ class CardDisplayFrame(tk.Frame):
 		self.display_port = tk.Label(
 			self, 
 			image=self.pixel,
-			width=self.ideal_viewing_size[0],
-			height=self.ideal_viewing_size[1],
+			width=CardImageManager.IDEAL_VIEWING_SIZE[0],
+			height=CardImageManager.IDEAL_VIEWING_SIZE[1],
 			relief=tk.SUNKEN
 		)
 		self.display_port.pack()
 		self.instances.append(self)
 
-		self.flip_button = tk.Button(self, text="Flip (↻)", command=self.flip)
+		self.flip_button = tk.Button(self, text="Flip (↻)", command=self.attempt_flip)
 		self.flip_button.pack()
 
 	def display(self):
 		self.display_port.configure(image=self.image)
 
+	def apologize(self):
+		self.display_port.configure(text='Still Loading! Check Back Soon xc')
+
 	def clear(self):
 		self.display_port.configure(
 			image=self.pixel,
-			width=self.ideal_viewing_size[0],
-			height=self.ideal_viewing_size[1]
+			width=CardImageManager.IDEAL_VIEWING_SIZE[0],
+			height=CardImageManager.IDEAL_VIEWING_SIZE[1]
 		)
 
 	@classmethod
@@ -45,14 +46,7 @@ class CardDisplayFrame(tk.Frame):
 		for display_frame in cls.instances:
 			display_frame.clear()
 		cls.image = None
-
-	@classmethod
-	def _get_image(cls, image_link):
-		response = requests.get(image_link)
-		image = Image.open(BytesIO(response.content))
-		resized_image = image.resize(cls.ideal_viewing_size)
-
-		return ImageTk.PhotoImage(resized_image)
+		cls.current_side = 'N/A'
 
 	# Broadcast image to all display frames
 	@classmethod
@@ -63,45 +57,45 @@ class CardDisplayFrame(tk.Frame):
 	# Takes in a row series and displays the front side of the card
 	@classmethod
 	def display_new_image(cls, card_row_series):
-		cls.image_info_series = card_row_series
-		# If there's nothing to display, then display nothing
-		if cls.image_info_series is None:
+		card_name = card_row_series.name
+		cls.current_card = card_name
+		# If no card is given to display, then clear all
+		if card_name is None:
 			print('no row selected!')
 			CardDisplayFrame.clear_all()
 			return
 
-		# If it's a double-sided card, find front-side info and activate flip button 
-		print(cls.image_info_series['name'], cls.image_info_series['flips'])
-		if cls.image_info_series['flips']:
-			print("oh yeah, this card flips")
-			cls.current_side = 'Front'
-			front_side_info_series = cls.image_info_series['first_card_info']
-			image_link = front_side_info_series['image_uris.png']
-		# Otherwise, image link is stored normally
-		else:
-			print("this card doesn't flip")
-			cls.current_side = 'N/A'
-			image_link = cls.image_info_series['image_uris.png']
-
-		print('getting image!', image_link)
-		cls.image = cls._get_image(image_link)
+		# If we're still waiting on a card, apologize and move on
+		if not CardImageManager.has_images_loaded(card_name):
+			print('uh oh! image not loaded yet...')
+			cls.clear_all()
+			for display_frame in cls.instances:
+				display_frame.apologize()
+			return
+		# Otherwise, get image from CardImageManager
+		print(card_row_series['name'], card_row_series['flips'])
+		cls.image = CardImageManager.get_image(cls.current_card, 'front')
+		cls.current_side = 'Front'
 		print('broadcasting!')
 		cls._broadcast()
 		print('finished broadcasting')
 
 	@classmethod
-	def flip(cls):
+	def attempt_flip(cls):
 		match cls.current_side:
 			case 'N/A':
 				return
 			case 'Front':
+				back_image = CardImageManager.get_image(cls.current_card, 'back')
+				if back_image is None:
+					return
+				cls.image = back_image
 				cls.current_side = 'Back'
-				back_side_info_df = cls.image_info_series['second_card_info']
-				image_link = back_side_info_df['image_uris.png']
 			case 'Back':
+				front_image = CardImageManager.get_image(cls.current_card, 'front')
+				if front_image is None:
+					return
+				cls.image = front_image
 				cls.current_side = 'Front'
-				front_side_info_df = cls.image_info_series['first_card_info']
-				image_link = front_side_info_df['image_uris.png']
 
-		cls.image = cls._get_image(image_link)
 		cls._broadcast()
